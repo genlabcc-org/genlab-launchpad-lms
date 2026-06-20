@@ -1,0 +1,4 @@
+---
+api_domain_name: api.dev.genlablaunchpad.cc
+spring_profile: dev
+allowed_origins: "https://dev.genlablaunchpad.cc"

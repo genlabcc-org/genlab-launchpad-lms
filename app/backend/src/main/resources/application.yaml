@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: genlab-launchpad-lms-api
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none

@@ -1,0 +1,247 @@
+name: Infrastructure & Application Deployment
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  #     - staging
+  #     - dev
+  #   paths:
+  #     - 'deployments/**'
+  #     - 'app/backend/**'
+  #     - '.github/workflows/infra-deploy.yml'
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+  #   branches:
+  #     - staging
+  #     - dev
+  #   paths:
+  #     - 'deployments/**'
+  #     - 'app/backend/**'
+  #     - '.github/workflows/infra-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform (apply or destroy)'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - apply
+          - destroy
+      environment:
+        description: 'Target Environment'
+        required: false
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+jobs:
+  determine-env:
+    runs-on: ubuntu-latest
+    outputs:
+      env_name: ${{ steps.set-env.outputs.env_name }}
+      tf_dir: ${{ steps.set-env.outputs.tf_dir }}
+      supabase_mode: ${{ steps.set-env.outputs.supabase_mode }}
+      supabase_project_ref: ${{ steps.set-env.outputs.supabase_project_ref }}
+      action: ${{ steps.set-env.outputs.action }}
+    steps:
+      - id: set-env
+        run: |
+          # 1. Determine Environment
+          ENV="dev"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.environment }}" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+          elif [ "${{ github.ref_name }}" = "main" ] || [ "${{ github.base_ref }}" = "main" ]; then
+            ENV="prod"
+          elif [ "${{ github.ref_name }}" = "staging" ] || [ "${{ github.base_ref }}" = "staging" ]; then
+            ENV="staging"
+          fi
+          echo "env_name=$ENV" >> $GITHUB_OUTPUT
+          echo "tf_dir=deployments/terraform/environments/$ENV" >> $GITHUB_OUTPUT
+          
+          # 2. Determine Action (apply, destroy, or skip)
+          ACTION="apply"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ACTION="${{ github.event.inputs.action }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "$ENV" = "prod" ] || [ "$ENV" = "staging" ]; then
+              ACTION="skip"
+            else
+              ACTION="apply"
+            fi
+          fi
+          echo "action=$ACTION" >> $GITHUB_OUTPUT
+          
+          # 3. Determine Supabase Routing
+          if [ "$ENV" = "prod" ]; then
+            echo "supabase_mode=project" >> $GITHUB_OUTPUT
+            echo "supabase_project_ref=${{ secrets.SUPABASE_PROJECT_REF_PROD }}" >> $GITHUB_OUTPUT
+          elif [ "$ENV" = "staging" ]; then
+            echo "supabase_mode=project" >> $GITHUB_OUTPUT
+            echo "supabase_project_ref=${{ secrets.SUPABASE_PROJECT_REF_STAGING }}" >> $GITHUB_OUTPUT
+          elif [ "$ENV" = "dev" ] && ([ "${{ github.ref_name }}" = "dev" ] || [ "${{ github.base_ref }}" = "dev" ]); then
+            echo "supabase_mode=project" >> $GITHUB_OUTPUT
+            echo "supabase_project_ref=${{ secrets.SUPABASE_PROJECT_REF_DEV }}" >> $GITHUB_OUTPUT
+          else
+            echo "supabase_mode=branch" >> $GITHUB_OUTPUT
+            echo "supabase_project_ref=" >> $GITHUB_OUTPUT
+          fi
+
+  terraform:
+    needs: determine-env
+    runs-on: ubuntu-latest
+    outputs:
+      instance_public_ip: ${{ steps.tf-apply.outputs.instance_public_ip }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Terraform Init
+        run: |
+          cd ${{ needs.determine-env.outputs.tf_dir }}
+          terraform init
+
+      - name: Terraform Apply
+        if: needs.determine-env.outputs.action == 'apply'
+        id: tf-apply
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_key_name: ${{ secrets.AWS_SSH_KEY_NAME }}
+          TF_VAR_vpc_id: ${{ secrets.AWS_VPC_ID }}
+          TF_VAR_subnet_ids: ${{ secrets.AWS_SUBNET_IDS }}
+          TF_VAR_backend_subnet_id: ${{ secrets.AWS_BACKEND_SUBNET_ID }}
+          TF_VAR_db_password: ${{ secrets.DB_MASTER_PASSWORD }}
+          TF_VAR_acm_certificate_arn: ${{ secrets.AWS_ACM_CERTIFICATE_ARN }}
+        run: |
+          cd ${{ needs.determine-env.outputs.tf_dir }}
+          terraform apply -auto-approve
+          IP=$(terraform output -raw backend_public_ip)
+          echo "instance_public_ip=$IP" >> $GITHUB_OUTPUT
+
+      - name: Terraform Destroy (Teardown)
+        if: needs.determine-env.outputs.action == 'destroy'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          TF_VAR_key_name: ${{ secrets.AWS_SSH_KEY_NAME }}
+          TF_VAR_vpc_id: ${{ secrets.AWS_VPC_ID }}
+          TF_VAR_subnet_ids: ${{ secrets.AWS_SUBNET_IDS }}
+          TF_VAR_backend_subnet_id: ${{ secrets.AWS_BACKEND_SUBNET_ID }}
+          TF_VAR_db_password: ${{ secrets.DB_MASTER_PASSWORD }}
+          TF_VAR_acm_certificate_arn: ${{ secrets.AWS_ACM_CERTIFICATE_ARN }}
+        run: |
+          cd ${{ needs.determine-env.outputs.tf_dir }}
+          terraform destroy -auto-approve
+
+  supabase-migrations:
+    needs: determine-env
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy Database Migrations
+        if: needs.determine-env.outputs.action == 'apply'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          cd deployments/supabase
+          if [ "${{ needs.determine-env.outputs.supabase_mode }}" = "project" ]; then
+            supabase link --project-ref "${{ needs.determine-env.outputs.supabase_project_ref }}"
+            supabase db push --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
+          else
+            BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+            supabase db branch create "$BRANCH_NAME" || true
+            supabase db push --branch "$BRANCH_NAME" --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
+          fi
+
+      - name: Clean Up Database Sandbox (Teardown)
+        if: needs.determine-env.outputs.action == 'destroy' && needs.determine-env.outputs.supabase_mode == 'branch'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          cd deployments/supabase
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          supabase db branch delete "$BRANCH_NAME" --force || true
+
+  build-backend:
+    needs: determine-env
+    if: needs.determine-env.outputs.action == 'apply'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v3
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Compile Backend JAR
+        run: |
+          cd app/backend
+          ./mvnw clean package -DskipTests
+
+      - name: Upload JAR Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-jar
+          path: app/backend/target/*.jar
+
+  ansible-deploy:
+    needs: [determine-env, terraform, build-backend]
+    if: needs.determine-env.outputs.action == 'apply'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Download JAR Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: app-jar
+          path: deployments/ansible
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Setup SSH Directory
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ANSIBLE_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ needs.terraform.outputs.instance_public_ip }} >> ~/.ssh/known_hosts
+
+      - name: Run Ansible Deploy Playbook
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: 'False'
+          AnsibleIP: ${{ needs.terraform.outputs.instance_public_ip }}
+        run: |
+          cd deployments/ansible
+          # Dynamically map the JAR filename to variables
+          JAR_FILE=$(ls *.jar | head -n 1)
+          
+          # Run deployment playbook targeting the dynamic IP resolved by Terraform
+          ansible-playbook -i "$AnsibleIP," \
+            -u ubuntu \
+            --private-key ~/.ssh/id_rsa \
+            -e "app_local_src=$JAR_FILE spring_profile=${{ needs.determine-env.outputs.env_name }} db_password=${{ secrets.SUPABASE_DB_PASSWORD }} supabase_project_ref=${{ needs.determine-env.outputs.supabase_project_ref }}" \
+            site.yml
