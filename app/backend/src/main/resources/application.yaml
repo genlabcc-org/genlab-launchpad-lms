@@ -2,11 +2,18 @@ spring:
   application:
     name: genlab-launchpad-lms-api
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:54322/postgres}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
+
+supabase:
+  url: ${SUPABASE_URL:http://localhost:54321}
+  anon-key: ${SUPABASE_ANON_KEY:your-local-anon-key}
+  jwt-secret: ${SUPABASE_JWT_SECRET:your-local-jwt-secret}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:your-local-service-role-key}
+  seeded-admins: ${SUPABASE_SEEDED_ADMINS:admin@genlab.cc}

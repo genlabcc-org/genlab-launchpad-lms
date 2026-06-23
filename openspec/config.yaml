@@ -2,12 +2,41 @@ schema: spec-driven
 
 # Project context (optional)
 # This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  This is the project for GenLab Launchpad LMS. The scope of 
+  this project is to manage all the course students, assign 
+  them courses, manage their slots, assign appropriate mentors 
+  available for those slots, manage the slots in a custom 
+  calendar view, and track payments (which are entered manually). 
+  On the client side, course students can view the details 
+  of their courses and check out their learning journeys.
+  
+  Tech stack: 
+    - Backend: Java 25, Spring Boot 4.1.0, Spring Security, Spring WebFlux, Caffeine Cache
+    - Database/Auth: Supabase (PostgreSQL 17, Kong, GoTrue/Auth)
+    - Utilities: spring-dotenv (for automatic .env resolution)
+  Roles & Access Control:
+    - Roles: student (phone-only sign-in), mentor (email ends with .genlab@gmail.com), admin (email ends with @genlab.cc)
+    - Restrictions: Students and mentors are sign-in only (no self-registration). Only admins can provision new logins.
+    - Aspect-Oriented Security: Enforced via @RequiresRole aspect checking userRole mapping.
+    - Caching: Caffeine manager for "userRoles" cache with 10 min TTL and 1000 max size.
+  Database Security (RLS & Triggers):
+    - Row Level Security (RLS): Enabled on all public schema tables (students, mentors, courses, user_roles).
+    - RLS Optimization: Always wrap auth.uid() in a subquery e.g. (select auth.uid()) to allow Postgres query planner to cache it once per query execution.
+    - Permissive Policies: Separate writes into distinct INSERT, UPDATE, and DELETE policies (do not use ALL) to avoid multiple permissive policy SELECT warnings.
+    - Function Security: Helper functions and triggers (like get_user_role and handle_new_user) must be placed in a non-exposed 'internal' schema with search_path explicitly set to public to prevent mutable search path vulnerabilities and hide functions from external RPC routes.
+  Testing Conventions:
+    - Framework: JUnit 5 (JUnit Jupiter)
+    - Slice Annotations:
+      - `@WebMvcTest` for web controller layer tests (requires mocking SupabaseProperties via @MockitoBean)
+      - `@DataJpaTest` for database repository slice tests
+    - Integration Testing: `@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)`
+    - Mocking Beans: Use `@MockitoBean` for dependency mocking within Spring application context (replaces deprecated @MockBean)
+    - Controller Tests: Use `MockMvc` or `WebTestClient` to perform web requests
+    - Unit Tests: Use direct instantiation (java `new` constructor call) in `@BeforeEach` setup, without Spring context
+    - Naming Conventions: Unit tests end with `Test` (e.g., `*Test.java`), Integration tests end with `IT` (e.g., `*IT.java`)
+    - Dependency Injection in Tests: Use field `@Autowired` or constructor `@Autowired` (JUnit 5 requires explicit opt-in parameter resolution)
+    - Assertions: Always use AssertJ `assertThat(...)` rather than JUnit's legacy `assertEquals(...)`
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
