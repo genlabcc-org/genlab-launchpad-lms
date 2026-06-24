@@ -1,49 +1,36 @@
-variable "allocated_storage" {
-  description = "The allocated storage in gigabytes"
-  type        = number
-  default     = 20
-}
-
-variable "instance_class" {
-  description = "The instance type of the RDS instance"
-  type        = string
-  default     = "db.t3.micro"
-}
-
-variable "db_name" {
-  description = "The name of the database to create when the DB instance is created"
+variable "supabase_organization_id" {
+  description = "The ID of the Supabase organization where the project is managed."
   type        = string
 }
 
-variable "username" {
-  description = "Username for the master DB user"
+variable "environment" {
+  description = "The target environment (e.g. dev, staging, prod)."
   type        = string
 }
 
-variable "password" {
-  description = "Password for the master DB user"
+variable "region" {
+  description = "The region to deploy the Supabase project in."
+  type        = string
+}
+
+variable "db_password" {
+  description = "The master password for the PostgreSQL database."
   type        = string
   sensitive   = true
 }
 
-variable "subnet_ids" {
-  description = "A list of VPC subnet IDs"
-  type        = list(string)
+variable "use_branching" {
+  description = "Whether to use database branching for non-prod environments."
+  type        = bool
 }
 
-variable "vpc_id" {
-  description = "The VPC ID where database should reside"
+variable "supabase_project_ref" {
+  description = "The Project Ref ID of the parent/production Supabase project. Required for branching."
   type        = string
-}
+  default     = ""
 
-variable "allowed_security_group_ids" {
-  description = "List of security groups permitted to access the database"
-  type        = list(string)
-  default     = []
-}
-
-variable "application_tag" {
-  description = "Tag for Service Catalog AppRegistry myApplication mapping"
-  type        = map(string)
-  default     = {}
+  validation {
+    condition     = var.supabase_project_ref == "" || can(regex("^[a-z0-9]{20}$", var.supabase_project_ref))
+    error_message = "The supabase_project_ref must be a valid 20-character lowercase alphanumeric slug (e.g. 'jdgubohcwzgmaadjrhrm')."
+  }
 }

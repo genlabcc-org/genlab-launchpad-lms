@@ -1,0 +1,254 @@
+{
+  "color": {
+    "Hero Background": {
+      "$type": "color",
+      "$value": "#0a0a0a",
+      "$description": "Full-bleed hero section background (dark near-black), confirmed by probe: home-hero-shell backgroundColor rgb(10,10,10)"
+    },
+    "Surface Dark": {
+      "$type": "color",
+      "$value": "#101010",
+      "$description": "Dark card and section surfaces throughout the page"
+    },
+    "Hero Heading Text": {
+      "$type": "color",
+      "$value": "#f4f4f4",
+      "$description": "Main hero h1 heading color, confirmed by probe: h1.main-title color rgb(244,244,244)"
+    },
+    "Body Text White": {
+      "$type": "color",
+      "$value": "#ffffff",
+      "$description": "Primary text on dark surfaces, nav links, body copy; highest frequency color (534 hits)"
+    },
+    "Acid Lime Primary": {
+      "$type": "color",
+      "$value": "#cfff00",
+      "$description": "Primary CTA button fill (Shabdam AI button), brand accent; 8 hits in CSSOM"
+    },
+    "Acid Lime Muted": {
+      "$type": "color",
+      "$value": "#a1bf00",
+      "$description": "Secondary lime tone used on logo tile, borders, and accent elements; 20 hits in CSSOM"
+    },
+    "Lime Bright": {
+      "$type": "color",
+      "$value": "#bcf000",
+      "$description": "Bright lime variant used in gradient transitions and glow effects"
+    },
+    "Border Subtle": {
+      "$type": "color",
+      "$value": "#eaeaea",
+      "$description": "Divider lines and subtle borders; 70 hits in CSSOM"
+    },
+    "Muted Gray": {
+      "$type": "color",
+      "$value": "#444444",
+      "$description": "Secondary/muted text labels; 12 hits in CSSOM"
+    },
+    "Near Black Text": {
+      "$type": "color",
+      "$value": "#111111",
+      "$description": "Dark text on light surfaces (footer, cards); 172 hits in CSSOM"
+    }
+  },
+  "typography": {
+    "Hero Display": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Clash Display",
+        "fontSize": "115.2px",
+        "fontWeight": 700,
+        "lineHeight": "108px",
+        "letterSpacing": "2px"
+      },
+      "$description": "Hero brand wordmark / main page title (h1.main-title, probe-confirmed 115.2px)"
+    },
+    "Section Heading Large": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Clash Display",
+        "fontSize": "72px",
+        "fontWeight": 700,
+        "lineHeight": "108px",
+        "letterSpacing": "2px"
+      },
+      "$description": "Large section headings (h2 level), confirmed in CSSOM 72px w700"
+    },
+    "Section Heading Medium": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Clash Display",
+        "fontSize": "42px",
+        "fontWeight": 700,
+        "lineHeight": "63px",
+        "letterSpacing": "2px"
+      },
+      "$description": "Mid-level section headings"
+    },
+    "Subheading": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Clash Display",
+        "fontSize": "38.4px",
+        "fontWeight": 200,
+        "lineHeight": "57.6px",
+        "letterSpacing": "2px"
+      },
+      "$description": "Subheadings and taglines with light weight contrast"
+    },
+    "Tagline Display": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Clash Display",
+        "fontSize": "35.2px",
+        "fontWeight": 300,
+        "lineHeight": "42.24px",
+        "letterSpacing": "1px"
+      },
+      "$description": "Tagline text — 'World's First Gen Z & AI Creative Powerhouse'"
+    },
+    "Body Default": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Clash Display",
+        "fontSize": "16px",
+        "fontWeight": 400,
+        "lineHeight": "24px",
+        "letterSpacing": "2px"
+      },
+      "$description": "Primary body text, nav links, labels; highest frequency tuple (310 hits)"
+    },
+    "Label Small": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Clash Display",
+        "fontSize": "12.8px",
+        "fontWeight": 400,
+        "lineHeight": "19.2px",
+        "letterSpacing": "2px"
+      },
+      "$description": "Small labels, captions, tag text"
+    },
+    "Label Light": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Clash Display",
+        "fontSize": "15.36px",
+        "fontWeight": 200,
+        "lineHeight": "23.04px",
+        "letterSpacing": "2px"
+      },
+      "$description": "Light-weight descriptive labels and secondary copy"
+    },
+    "Nav Label": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Clash Display",
+        "fontSize": "13.6px",
+        "fontWeight": 500,
+        "lineHeight": "20.4px",
+        "letterSpacing": "0.68px"
+      },
+      "$description": "Navigation link labels"
+    },
+    "CTA Button": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Clash Display",
+        "fontSize": "15px",
+        "fontWeight": 500,
+        "lineHeight": "22.5px",
+        "letterSpacing": "1.2px"
+      },
+      "$description": "Primary CTA button text (JOIN WITH US, Shabdam AI)"
+    }
+  },
+  "spacing": {
+    "xs": {
+      "$type": "dimension",
+      "$value": "4px"
+    },
+    "sm": {
+      "$type": "dimension",
+      "$value": "8px"
+    },
+    "md": {
+      "$type": "dimension",
+      "$value": "16px"
+    },
+    "lg": {
+      "$type": "dimension",
+      "$value": "24px"
+    },
+    "xl": {
+      "$type": "dimension",
+      "$value": "30px"
+    },
+    "2xl": {
+      "$type": "dimension",
+      "$value": "32px"
+    },
+    "3xl": {
+      "$type": "dimension",
+      "$value": "38.4px"
+    },
+    "4xl": {
+      "$type": "dimension",
+      "$value": "40px"
+    },
+    "5xl": {
+      "$type": "dimension",
+      "$value": "64px"
+    },
+    "6xl": {
+      "$type": "dimension",
+      "$value": "76.8px"
+    },
+    "7xl": {
+      "$type": "dimension",
+      "$value": "102.4px"
+    }
+  },
+  "borderRadius": {
+    "pill": {
+      "$type": "dimension",
+      "$value": "999px"
+    },
+    "full-circle": {
+      "$type": "dimension",
+      "$value": "100px"
+    },
+    "nav-pill": {
+      "$type": "dimension",
+      "$value": "100px"
+    },
+    "card": {
+      "$type": "dimension",
+      "$value": "32px"
+    },
+    "tag": {
+      "$type": "dimension",
+      "$value": "18px"
+    },
+    "button": {
+      "$type": "dimension",
+      "$value": "60px"
+    },
+    "sm": {
+      "$type": "dimension",
+      "$value": "8px"
+    },
+    "xs": {
+      "$type": "dimension",
+      "$value": "4px"
+    },
+    "md": {
+      "$type": "dimension",
+      "$value": "10px"
+    },
+    "lg": {
+      "$type": "dimension",
+      "$value": "24px"
+    }
+  }
+}

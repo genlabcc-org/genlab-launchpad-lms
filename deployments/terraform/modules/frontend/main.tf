@@ -1,3 +1,15 @@
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
+data "aws_acm_certificate" "selected" {
+  provider    = aws.us_east_1
+  domain      = var.dns_zone_name
+  statuses    = ["ISSUED"]
+  most_recent = true
+}
+
 data "aws_route53_zone" "selected" {
   name         = var.dns_zone_name
   private_zone = false
@@ -65,7 +77,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   is_ipv6_enabled     = true
   default_root_object = "index.html"
 
-  aliases = [var.domain_name]
+  aliases = concat([var.domain_name], var.additional_domain_names)
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS"]
@@ -94,7 +106,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   viewer_certificate {
-    acm_certificate_arn      = var.acm_certificate_arn
+    acm_certificate_arn      = data.aws_acm_certificate.selected.arn
     ssl_support_method       = "snionly"
     minimum_protocol_version = "TLSv1.2_2021"
   }
@@ -110,6 +122,20 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 resource "aws_route53_record" "frontend_dns" {
   zone_id = data.aws_route53_zone.selected.zone_id
   name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.s3_distribution.domain_name
+    zone_id                = aws_cloudfront_distribution.s3_distribution.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "frontend_dns_additional" {
+  for_each = toset(var.additional_domain_names)
+
+  zone_id = data.aws_route53_zone.selected.zone_id
+  name    = each.value
   type    = "A"
 
   alias {

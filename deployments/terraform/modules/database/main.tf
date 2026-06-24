@@ -1,59 +1,42 @@
-resource "aws_db_subnet_group" "db_subnets" {
-  name       = "${var.db_name}-subnet-group"
-  subnet_ids = var.subnet_ids
-
-  tags = merge(
-    {
-      Name = "${var.db_name}-subnet-group"
-    },
-    var.application_tag
-  )
+terraform {
+  required_providers {
+    supabase = {
+      source  = "supabase/supabase"
+      version = "~> 1.0"
+    }
+  }
 }
 
-resource "aws_security_group" "db_sg" {
-  name        = "${var.db_name}-db-sg"
-  description = "Database Security Group"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = var.allowed_security_group_ids
-  }
-
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-    ipv6_cidr_blocks = ["::/0"]
-  }
-
-  tags = merge(
-    {
-      Name = "${var.db_name}-db-sg"
-    },
-    var.application_tag
-  )
+locals {
+  is_prod     = var.environment == "prod"
+  # If branching is enabled, dev/staging environments use a branch. If disabled, they use a separate project.
+  use_branch  = !local.is_prod && var.use_branching
+  project_ref = local.use_branch ? supabase_branch.main[0].database.id : supabase_project.main[0].id
 }
 
-resource "aws_db_instance" "db" {
-  allocated_storage      = var.allocated_storage
-  engine                 = "postgres"
-  engine_version         = "15"
-  instance_class         = var.instance_class
-  db_name                = var.db_name
-  username               = var.username
-  password               = var.password
-  db_subnet_group_name   = aws_db_subnet_group.db_subnets.name
-  vpc_security_group_ids = [aws_security_group.db_sg.id]
-  skip_final_snapshot    = true
+resource "supabase_project" "main" {
+  count             = local.use_branch ? 0 : 1
+  organization_id   = var.supabase_organization_id
+  name              = var.use_branching ? "launchpad-lms" : "launchpad-${var.environment}"
+  database_password = var.db_password
+  region            = var.region
 
-  tags = merge(
-    {
-      Name = var.db_name
-    },
-    var.application_tag
-  )
+  # Prevent database password changes from triggering replacement of the project in production
+  lifecycle {
+    ignore_changes = [database_password]
+  }
+}
+
+resource "supabase_branch" "main" {
+  count              = local.use_branch ? 1 : 0
+  parent_project_ref = var.supabase_project_ref
+  git_branch         = var.environment
+  region             = var.region
+
+  lifecycle {
+    precondition {
+      condition     = !local.use_branch || (var.supabase_project_ref != "" && var.supabase_project_ref != null)
+      error_message = "The variable 'supabase_project_ref' must be provided to create a development branch. Please ensure you have set the parent project ref."
+    }
+  }
 }

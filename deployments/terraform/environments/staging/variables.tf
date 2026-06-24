@@ -1,60 +1,68 @@
-variable "aws_region" {
+  variable "aws_region" {
   description = "The AWS region to deploy resources into"
   type        = string
-  default     = "us-west-2"
+  default     = "ap-south-1"
 }
 
 variable "root_domain_name" {
   description = "The root domain name (e.g., genlablaunchpad.cc)"
   type        = string
-  default     = "genlablaunchpad.cc"
+  default     = "launchpad.genlab.cc"
 }
 
 variable "dns_zone_name" {
   description = "The hosted zone name in Route 53"
   type        = string
-  default     = "genlablaunchpad.cc"
+  default     = "genlab.cc"
 }
 
 variable "ami_id" {
   description = "The AMI ID for the backend EC2 host (Ubuntu)"
   type        = string
-  default     = "ami-03f12c7a6f88d058a" # Example Ubuntu AMI
+  default     = "ami-0b40571b9c2387b15" # Ubuntu Server 26.04 LTS ARM64 AMI
 }
 
-variable "key_name" {
-  description = "The SSH key name to configure on the backend compute"
+
+
+variable "supabase_organization_id" {
+  description = "The ID of the Supabase organization where the project is managed."
   type        = string
 }
 
-variable "vpc_id" {
-  description = "VPC ID where resources are deployed"
+variable "use_branching" {
+  description = "Whether to use database branching for non-prod environments."
+  type        = bool
+  default     = false
+}
+
+variable "supabase_project_ref" {
+  description = "The Project Ref ID of the parent/production Supabase project. Required for branching."
   type        = string
+  default     = ""
 }
 
-variable "subnet_ids" {
-  description = "Subnet IDs for RDS placement"
-  type        = list(string)
-}
-
-variable "backend_subnet_id" {
-  description = "Subnet ID for the backend compute EC2 instance"
-  type        = string
-}
-
-variable "db_username" {
-  description = "Database master username"
-  type        = string
-  default     = "dbadmin"
-}
-
-variable "db_password" {
-  description = "Database master password"
+variable "smtp_pass" {
+  description = "SMTP password (API key) for the email service"
   type        = string
   sensitive   = true
 }
 
-variable "acm_certificate_arn" {
-  description = "ACM Certificate ARN in us-east-1 (required for CloudFront)"
-  type        = string
+variable "enable_email_otp" {
+  description = "Whether to enable Email OTP authentication"
+  type        = bool
+  default     = true
 }
+
+variable "enable_mobile_otp" {
+  description = "Whether to enable Mobile OTP authentication"
+  type        = bool
+  default     = true
+}
+
+variable "supabase_access_token" {
+  description = "The access token for Supabase API auth"
+  type        = string
+  sensitive   = true
+}
+
+

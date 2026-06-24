@@ -17,3 +17,9 @@ output "backend_url" {
   description = "The URL of the backend API"
   value       = "api.${var.domain_name}"
 }
+
+output "private_key" {
+  description = "The generated private key for backend SSH access (if create_key_pair is true)"
+  value       = var.create_key_pair ? tls_private_key.backend_key[0].private_key_pem : null
+  sensitive   = true
+}

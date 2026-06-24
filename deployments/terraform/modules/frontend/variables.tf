@@ -8,13 +8,15 @@ variable "dns_zone_name" {
   type        = string
 }
 
-variable "acm_certificate_arn" {
-  description = "The ARN of the ACM certificate to use for CloudFront (must be in us-east-1)"
-  type        = string
-}
-
 variable "application_tag" {
   description = "Tag for Service Catalog AppRegistry myApplication mapping"
   type        = map(string)
   default     = {}
 }
+
+variable "additional_domain_names" {
+  description = "Additional domain names (aliases) for the frontend application"
+  type        = list(string)
+  default     = []
+}
+

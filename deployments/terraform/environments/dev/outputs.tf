@@ -1,6 +1,6 @@
 output "aws_application_arn" {
   description = "The Service Catalog AppRegistry application ARN"
-  value       = aws_servicecatalogappregistry_application.app.arn
+  value       = data.terraform_remote_state.metadata.outputs.application_arn
 }
 
 output "database_host" {
@@ -26,4 +26,21 @@ output "backend_api_url" {
 output "frontend_url" {
   description = "The static website frontend URL"
   value       = module.frontend.cloudfront_domain_name
+}
+
+output "backend_private_key" {
+  description = "The generated private key for backend SSH access"
+  value       = module.backend.private_key
+  sensitive   = true
+}
+
+output "supabase_project_ref" {
+  description = "The project reference ID of the Supabase database"
+  value       = module.database.project_id
+}
+
+output "db_url" {
+  description = "The connection string for database migrations."
+  value       = module.database.db_url
+  sensitive   = true
 }

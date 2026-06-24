@@ -17,3 +17,24 @@ supabase:
   jwt-secret: ${SUPABASE_JWT_SECRET:your-local-jwt-secret}
   service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:your-local-service-role-key}
   seeded-admins: ${SUPABASE_SEEDED_ADMINS:admin@genlab.cc}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "aws & dev"
+    import: "aws-secretsmanager:/config/genlab-launchpad-lms-api_dev"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "aws & staging"
+    import: "aws-secretsmanager:/config/genlab-launchpad-lms-api_staging"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: "aws & prod"
+    import: "aws-secretsmanager:/config/genlab-launchpad-lms-api_prod"

@@ -1,54 +1,113 @@
+terraform {
+  required_version = ">= 1.0.0"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    supabase = {
+      source  = "supabase/supabase"
+      version = "~> 1.0"
+    }
+    resend = {
+      source  = "jhoward321/resend"
+      version = "~> 0.1"
+    }
+    tls = {
+      source  = "hashicorp/tls"
+      version = "~> 4.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
+  }
+
+  cloud {
+    organization = "genlabcc"
+
+    workspaces {
+      name = "launchpad-lms-staging"
+    }
+  }
+}
+
 provider "aws" {
   region = var.aws_region
 }
 
-# Create AppRegistry application representing the unified myApplication
-resource "aws_servicecatalogappregistry_application" "app" {
-  name        = "launchpad-lms-staging"
-  description = "Staging environment resources for GenLab Launchpad LMS"
+provider "supabase" {
+  access_token = var.supabase_access_token
 }
 
-resource "aws_servicecatalogappregistry_attribute_group" "metadata" {
-  name        = "launchpad-lms-staging-metadata"
-  description = "Metadata attribute group for billing and project owners"
-  attributes  = jsonencode({
-    Environment = "staging"
-    Project     = "GenLab Launchpad LMS"
-    Owner       = "genlab-admin"
-  })
+provider "resend" {
+  api_key = var.smtp_pass
 }
 
-resource "aws_servicecatalogappregistry_attribute_group_association" "assoc" {
-  application_id      = aws_servicecatalogappregistry_application.app.id
-  attribute_group_id = aws_servicecatalogappregistry_attribute_group.metadata.id
+
+# Read persistent metadata application details from metadata state
+data "terraform_remote_state" "metadata" {
+  backend = "remote"
+
+  config = {
+    organization = "genlabcc"
+    workspaces = {
+      name = "launchpad-lms-metadata-staging"
+    }
+  }
 }
 
 locals {
   # Construct tag required for myApplication linking
   application_tag = {
-    "awsApplication" = aws_servicecatalogappregistry_application.app.arn
+    "awsApplication" = data.terraform_remote_state.metadata.outputs.application_arn
   }
   # Dynamic domain setup for staging environment: staging.<prod_url>
   frontend_domain = "staging.${var.root_domain_name}"
 }
 
-module "database" {
-  source                     = "../../modules/database"
-  db_name                    = "launchpad-staging" # Suffix staging
-  username                   = var.db_username
-  password                   = var.db_password
-  subnet_ids                 = var.subnet_ids
-  vpc_id                     = var.vpc_id
-  allowed_security_group_ids = [module.backend.backend_security_group_id]
-  application_tag            = local.application_tag
+module "secrets" {
+  source                    = "../../modules/secrets"
+  environment               = "staging"
+  application_tag           = local.application_tag
+  db_url                    = replace(module.database.db_url, "postgresql://", "jdbc:postgresql://")
+  supabase_url              = module.database.supabase_url
+  supabase_anon_key         = module.database.anon_key
+  supabase_service_role_key = module.database.service_role_key
 }
+
+module "database" {
+  source                   = "../../modules/database"
+  supabase_organization_id = var.supabase_organization_id
+  environment              = "staging"
+  region                   = "ap-south-1"
+  db_password              = module.secrets.db_password
+  use_branching            = var.use_branching
+  supabase_project_ref     = var.supabase_project_ref
+}
+
+module "smtp" {
+  source = "../../../../organization-infrastructure/modules/smtp"
+
+  project_ref                 = module.database.project_id
+  smtp_pass                   = var.smtp_pass
+  smtp_admin_email            = "no-reply@${var.root_domain_name}"
+  smtp_sender_name            = "GenLab Launchpad"
+  domain_name                 = var.root_domain_name
+  environment                 = "staging"
+  enable_email_otp            = var.enable_email_otp
+  enable_mobile_otp           = var.enable_mobile_otp
+  magic_link_template_content = file("${path.module}/../../../supabase/templates/magic_link.html")
+}
+
 
 module "backend" {
   source          = "../../modules/backend"
+  environment     = "staging"
+  secret_arn      = module.secrets.secret_arn
   ami_id          = var.ami_id
-  key_name        = var.key_name
-  subnet_id       = var.backend_subnet_id
-  vpc_id          = var.vpc_id
+  instance_type   = "t4g.micro"
+  aws_region      = var.aws_region
   domain_name     = local.frontend_domain # Backend resolves to api.staging.genlablaunchpad.cc
   dns_zone_name   = var.dns_zone_name
   application_tag = local.application_tag
@@ -58,6 +117,5 @@ module "frontend" {
   source              = "../../modules/frontend"
   domain_name         = local.frontend_domain # Frontend resolves to staging.genlablaunchpad.cc
   dns_zone_name       = var.dns_zone_name
-  acm_certificate_arn = var.acm_certificate_arn
   application_tag     = local.application_tag
 }
