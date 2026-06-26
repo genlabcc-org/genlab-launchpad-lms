@@ -1,14 +1,4 @@
-# supabase-database-provisioning Specification
-
-## Purpose
-TBD - created by archiving change implement-supabase-database. Update Purpose after archive.
-## Requirements
-### Requirement: Supabase Database Provisioning
-The database module MUST provision a Supabase project using the Supabase provider. It SHALL ignore database password updates after initial creation to prevent service disruption.
-
-#### Scenario: Successful Supabase project creation
-- **WHEN** the module is executed with a valid organization ID and master password
-- **THEN** a new Supabase project is created with a region matching the inputs, and any database password changes are ignored during subsequent updates.
+## MODIFIED Requirements
 
 ### Requirement: Toggleable Database Branching
 The database module MUST support toggling between database branch-based environment separation and separate standalone project separation via a `use_branching` boolean variable. When database branching is used, the configuration MUST resolve credentials using the parent project's database password to align with the branch database's inherited password.
@@ -20,4 +10,3 @@ The database module MUST support toggling between database branch-based environm
 #### Scenario: Standalone project separation
 - **WHEN** `use_branching = false` (or `environment == "prod"`)
 - **THEN** the module provisions a new standalone `supabase_project` named using the environment suffix.
-

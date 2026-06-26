@@ -85,8 +85,7 @@ module "database" {
 }
 
 module "smtp" {
-  source = "../../../../organization-infrastructure/modules/smtp"
-
+  source = "../../modules/smtp"
 
   project_ref                 = module.database.project_id
   smtp_pass                   = var.smtp_pass

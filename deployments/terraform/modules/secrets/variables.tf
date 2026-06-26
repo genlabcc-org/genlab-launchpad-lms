@@ -46,3 +46,10 @@ variable "supabase_jwt_secret" {
   default     = "PLACEHOLDER"
   sensitive   = true
 }
+
+variable "db_password_override" {
+  description = "An optional database password to use instead of generating a random one (used for branching)."
+  type        = string
+  default     = null
+  sensitive   = true
+}

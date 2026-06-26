@@ -1,4 +1,4 @@
 ---
-api_domain_name: api.staging.genlablaunchpad.cc
+api_domain_name: api.staging.launchpad.genlab.cc
 spring_profile: staging
-allowed_origins: "https://staging.genlablaunchpad.cc"
+allowed_origins: "https://staging.launchpad.genlab.cc"

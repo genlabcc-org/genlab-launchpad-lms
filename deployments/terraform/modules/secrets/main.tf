@@ -19,7 +19,7 @@ resource "random_password" "db_password" {
 }
 
 locals {
-  db_password = random_password.db_password.result
+  db_password = var.db_password_override != null && var.db_password_override != "" ? var.db_password_override : random_password.db_password.result
 }
 
 resource "aws_secretsmanager_secret" "backend_secret" {

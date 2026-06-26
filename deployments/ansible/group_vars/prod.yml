@@ -1,4 +1,4 @@
 ---
-api_domain_name: api.genlablaunchpad.cc
+api_domain_name: api.launchpad.genlab.cc
 spring_profile: prod
-allowed_origins: "https://www.genlablaunchpad.cc"
+allowed_origins: "https://www.launchpad.genlab.cc,https://launchpad.genlab.cc"

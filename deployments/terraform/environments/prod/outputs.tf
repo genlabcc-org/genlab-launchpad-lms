@@ -28,6 +28,16 @@ output "frontend_url" {
   value       = module.frontend.cloudfront_domain_name
 }
 
+output "frontend_s3_bucket_name" {
+  description = "The name of the S3 bucket hosting the static site"
+  value       = module.frontend.s3_bucket_name
+}
+
+output "cloudfront_distribution_id" {
+  description = "The CloudFront distribution ID"
+  value       = module.frontend.cloudfront_distribution_id
+}
+
 output "backend_private_key" {
   description = "The generated private key for backend SSH access"
   value       = module.backend.private_key

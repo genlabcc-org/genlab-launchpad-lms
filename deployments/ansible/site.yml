@@ -1,7 +1,7 @@
 ---
 - name: Configure Spring Boot API Server
   hosts: all
-  become: yes
+  become: true
   vars_files:
     - "group_vars/{{ spring_profile }}.yml"
   roles:

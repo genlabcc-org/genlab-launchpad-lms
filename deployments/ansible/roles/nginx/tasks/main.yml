@@ -4,6 +4,11 @@
     name: nginx
     state: present
 
+- name: Check if SSL certificate exists
+  stat:
+    path: "/etc/letsencrypt/live/{{ api_domain_name }}/fullchain.pem"
+  register: nginx_ssl_cert
+
 - name: Place Nginx configuration file for backend API
   template:
     src: nginx.conf.j2

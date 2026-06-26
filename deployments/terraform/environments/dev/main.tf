@@ -57,6 +57,16 @@ data "terraform_remote_state" "metadata" {
   }
 }
 
+data "aws_secretsmanager_secret" "prod_secret" {
+  count = var.use_branching ? 1 : 0
+  name  = "/config/genlab-launchpad-lms-api_prod"
+}
+
+data "aws_secretsmanager_secret_version" "prod_secret_version" {
+  count     = var.use_branching ? 1 : 0
+  secret_id = data.aws_secretsmanager_secret.prod_secret[0].id
+}
+
 locals {
   # Construct tag required for myApplication linking
   application_tag = {
@@ -64,6 +74,8 @@ locals {
   }
   # Dynamic domain setup for dev environment: dev.<prod_url>
   frontend_domain = "dev.${var.root_domain_name}"
+
+  prod_db_password = var.use_branching ? jsondecode(data.aws_secretsmanager_secret_version.prod_secret_version[0].secret_string)["spring.datasource.password"] : null
 }
 
 module "secrets" {
@@ -74,6 +86,7 @@ module "secrets" {
   supabase_url              = module.database.supabase_url
   supabase_anon_key         = module.database.anon_key
   supabase_service_role_key = module.database.service_role_key
+  db_password_override      = local.prod_db_password
 }
 
 module "database" {
@@ -87,8 +100,7 @@ module "database" {
 }
 
 module "smtp" {
-  source = "../../../../organization-infrastructure/modules/smtp"
-
+  source = "../../modules/smtp"
 
   project_ref                 = module.database.project_id
   smtp_pass                   = var.smtp_pass
@@ -115,8 +127,8 @@ module "backend" {
 }
 
 module "frontend" {
-  source              = "../../modules/frontend"
-  domain_name         = local.frontend_domain # Frontend resolves to dev.genlablaunchpad.cc
-  dns_zone_name       = var.dns_zone_name
-  application_tag     = local.application_tag
+  source          = "../../modules/frontend"
+  domain_name     = local.frontend_domain # Frontend resolves to dev.genlablaunchpad.cc
+  dns_zone_name   = var.dns_zone_name
+  application_tag = local.application_tag
 }

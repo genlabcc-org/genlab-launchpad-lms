@@ -8,7 +8,7 @@ terraform {
 }
 
 locals {
-  is_prod     = var.environment == "prod"
+  is_prod = var.environment == "prod"
   # If branching is enabled, dev/staging environments use a branch. If disabled, they use a separate project.
   use_branch  = !local.is_prod && var.use_branching
   project_ref = local.use_branch ? supabase_branch.main[0].database.id : supabase_project.main[0].id

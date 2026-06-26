@@ -6,10 +6,7 @@ After=syslog.target network.target
 User=springapp
 Group=springapp
 Type=simple
-Environment="SPRING_DATASOURCE_URL=jdbc:postgresql://db.{{ supabase_project_ref }}.supabase.co:5432/postgres"
-Environment="SPRING_DATASOURCE_USERNAME=postgres"
-Environment="SPRING_DATASOURCE_PASSWORD={{ db_password }}"
-ExecStart=/usr/bin/java -Dserver.port=8080 -Dspring.profiles.active={{ spring_profile }} -Dcors.allowed-origins={{ allowed_origins }} -jar {{ app_dest }}/app.jar
+ExecStart=/usr/bin/java -Dserver.port=8080 -Dspring.profiles.active=aws,{{ spring_profile }} -Dcors.allowed-origins={{ allowed_origins }} -jar {{ app_dest }}/app.jar
 SuccessExitStatus=143
 Restart=always
 RestartSec=10
