@@ -3,23 +3,31 @@ schema: spec-driven
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 context: |
-  This is the project for GenLab Launchpad LMS. The scope of 
-  this project is to manage all the course students, assign 
-  them courses, manage their slots, assign appropriate mentors 
-  available for those slots, manage the slots in a custom 
-  calendar view, and track payments (which are entered manually). 
-  On the client side, course students can view the details 
-  of their courses and check out their learning journeys.
+  This is the project for GenLab Launchpad LMS. The reason for building this application is that the current system is extremely inefficient to scale and manage. The custom-tailored LMS streamlines operations, manual revenue tracking, and analytics, resulting in highly efficient processes with minimal manual effort, leading to more efficient and happy employees.
+  
+  The application is built using a centralized, Zoho Invoice-style dashboard layout with a dark left sidebar navigation and role-based accessibility:
+  - Admins (HRs) manage course students (under 'Students'/'Customers'), catalog courses (under 'Courses'/'Items'), schedule slots (under 'Slots'/'slots'), register mentors (under 'Resource'/'mentor'), track manual payments (under 'Pending Payments'/'Payments'), and analyze platform stats (under 'Analytics'/'Home').
+  - Mentors sign in to view their assigned slots and schedule availability.
+  - Students sign in via phone OTP to view assigned courses, track learning journeys, check scheduled slots, and review payment history.
   
   Tech stack: 
+    - Frontend: React 19, TypeScript 6.0, Vite 8, Hero UI, Zustand, Axios
     - Backend: Java 25, Spring Boot 4.1.0, Spring Security, Spring WebFlux, Caffeine Cache
     - Database/Auth: Supabase (PostgreSQL 17, Kong, GoTrue/Auth)
     - Utilities: spring-dotenv (for automatic .env resolution)
+    - Infrastructure & CI/CD: Terraform 1.5.0, Ansible, AWS (EC2, S3, CloudFront, Secrets Manager), Supabase CLI, GitHub Actions
   Roles & Access Control:
-    - Roles: student (phone-only sign-in), mentor (email ends with .genlab@gmail.com), admin (email ends with @genlab.cc)
-    - Restrictions: Students and mentors are sign-in only (no self-registration). Only admins can provision new logins.
+    - Roles:
+      - student: Phone-only OTP sign-in. Can view their own assigned courses, learning journeys, slot schedules, and personal payment history.
+      - mentor: Email-based sign-in (email ends with `.genlab@gmail.com`). Can view their assigned mentoring slots, schedules, and manage slot status/feedback.
+      - admin (HRs): Email-based sign-in (email ends with `@genlab.cc`). Full administrative access: can provision and create new user accounts, assign courses, schedule/manage mentor slots, view dashboards/analytics, and manually log/track student payments.
+    - Access Level Isolation: Enforce customized sidebar navigation layouts, workspace views, and backend REST API endpoint access per role level.
+    - Restrictions: Students and mentors are sign-in only (no self-registration). Only admins (HRs) can provision new logins.
     - Aspect-Oriented Security: Enforced via @RequiresRole aspect checking userRole mapping.
     - Caching: Caffeine manager for "userRoles" cache with 10 min TTL and 1000 max size.
+    - Session Management:
+      - Duration: Each login session must last exactly 30 days across both backend and frontend layers.
+      - Configuration: The session duration must be configurable in a single centralized location on each side (e.g., inside the backend's `.env`/`application.yaml` configurations, and inside a single config file or environment variable on the frontend).
   Database Security (RLS & Triggers):
     - Row Level Security (RLS): Enabled on all public schema tables (students, mentors, courses, user_roles).
     - RLS Optimization: Always wrap auth.uid() in a subquery e.g. (select auth.uid()) to allow Postgres query planner to cache it once per query execution.
@@ -37,13 +45,84 @@ context: |
     - Naming Conventions: Unit tests end with `Test` (e.g., `*Test.java`), Integration tests end with `IT` (e.g., `*IT.java`)
     - Dependency Injection in Tests: Use field `@Autowired` or constructor `@Autowired` (JUnit 5 requires explicit opt-in parameter resolution)
     - Assertions: Always use AssertJ `assertThat(...)` rather than JUnit's legacy `assertEquals(...)`
+  Frontend UI & Navigation Layout:
+    - Component Library & Theming:
+      - Library: Hero UI for the interactive frontend component library.
+      - Customization: Support both light and dark modes customized using design tokens from docs/genlab-design.json.
+      - Centralized Theme Configuration:
+        - Theme Management: All color styles, themes, and design tokens MUST be managed centrally in a single file (e.g., in `tailwind.config.js` or a dedicated `theme.config.ts` exported to the Tailwind/Hero UI setup).
+        - Restrictions: Avoid scattered CSS theme variables or inline hardcoded color styling across UI components to maintain strict design system compliance.
+        - Phased Rollout Workflow: Start with the default original theme active. The custom GenLab parameters (need-to-change colors, typography, borders, and spacings from docs/genlab-design.json) MUST be present in the central design system/theme configuration file but kept disabled or parameterized, to be toggled/applied only after explicit design approval.
+      - Typography: Clash Display for headers and body copy with custom letter spacing and font weights.
+      - Colors Integration:
+        - Primary/Accent: Acid Lime (#cfff00, #a1bf00, #bcf000) for CTAs, active states, and highlights.
+        - Dark Theme: Hero Background (#0a0a0a) for full-bleed screens, Surface Dark (#101010) for cards, and White/Muted Gray for text.
+        - Light Theme: Light background surfaces, Near Black Text (#111111) for high-contrast visibility, and subtle borders (#eaeaea).
+      - Border Radius & Spacing: Apply rounded buttons (60px), rounded cards (32px), pill-shaped components (999px), and layout spacing ranging from xs (4px) to 7xl (102.4px).
+    - State Management:
+      - Library: Zustand for lightweight, boilerplate-free global state management.
+      - Core Stores: Centralize state management for student records, active course settings, scheduled slots/calendar view, and manually tracked pending payments.
+    - Style & Navigation: Standard invoice/billing system layout (inspired by Zoho Invoice) containing a dark left sidebar, top header navigation, and a main workspace/form panel.
+    - Sidebar Navigation Menu Mapping:
+      - Analytics (maps to 'Home' menu item): A dashboard for displaying key business metrics, student enrollments, course trends, slot schedules, and payment overviews.
+      - Students (maps to 'Customers' menu item): Managing student records, tracking attendance, and distributing certificates. Includes onboarding new students via a single admin form where the Admin fills out all student-collected details: name, gender, email, personal + parent/spouse mobile numbers, address, address proof (Aadhar/driving license image upload stored/retrieved via AWS S3), institution details (college/school/institute/company), student type (currently studying student, finished studies fresher, professional), referral details (direct, school, existing student, college, other), payment type (full, partial (monthly or two split)), registered course, assigned mentor, customizable time slot, start/end dates, profile photo upload (stored/retrieved via AWS S3), and terms & conditions agreement. Allows admins to manage attendance and trigger one-click certificate generation and distribution upon course completion.
+      - Courses (maps to 'Items' menu item, labeled as 'Cources'): Defining and managing course catalog, active modules, and student assignments.
+      - Mentors (maps to 'Resource' menu item): Directory and profile management for registered mentors.
+      - Pending Payments (maps to 'Payments' menu item): Auditing, tracking, and manual updating of outstanding student course fees.
+      - Slots (maps to 'slots' menu item): Custom calendar/scheduler view displaying assigned and open slots, mapping students to their respective mentors. Supports customizable slot timings (such as 10am-12pm, 2pm-4pm, 4pm-6pm) and admin-driven creation of new slots.
+  Architectural Guidelines & Design Principles:
+    - Core Principles: Strict adherence to SOLID, DRY, and KISS principles across all development boundaries (backend codebase, frontend application, and database designs).
+    - Backend Architecture:
+      - Layered Structure: Follow the Model-Repository-Service-Controller architecture pattern:
+        - Model Layer: Defines database entities, DTOs, and request/response data shapes.
+        - Repository Layer: Spring Data JPA interfaces responsible for database access and transactional persistence.
+        - Service Layer: Holds the core business logic, validation logic, transaction management, and cache handling.
+        - Controller Layer: REST controllers handling endpoints routing, request validation, handling CORS/security, and mapping HTTP requests.
+      - Decoupling: Decouple database entity structures from transfer data shapes (DTOs) exposed at controllers.
+      - Asset/Image Storage: Store and retrieve all user uploaded image assets (e.g., profile photos, address proof files) via AWS S3 buckets, provisioned and configured via Terraform.
+    - Database Design & Performance:
+      - Extensibility: Schema normalization, foreign keys, and organized incremental migrations to facilitate seamless schema expansion.
+      - Query Performance: Maintain high performance by indexing foreign keys, lookups, and search columns. Optimize row-level security (RLS) policies (e.g. wrap `auth.uid()` in a query like `(select auth.uid())` to cache it once per query execution).
+    - Frontend Architecture:
+      - API Layer: Responsible for raw Axios-based API requests, endpoints call definition, and network communication exclusively with the Spring Boot backend. The frontend MUST NOT communicate with the database/Supabase directly; all communications go through the backend.
+      - Data Layer: Responsible for state stores (Zustand), caching, selectors, and central business calculations.
+      - View Layer: Responsible for interactive components rendering (Hero UI) and UI presentation logic.
+      - Purpose: This 3-layer separation ensures the codebase remains highly extensible, easy to debug, and straightforward to unit or integration test.
+  Documentation Requirements:
+    - Central Storage: All project requirements and design documentation MUST be maintained in the docs/ directory.
+    - Files to Sync: The following markdown documents must be kept in sync with the openspec config and specifications:
+      - docs/brd.md: Business Requirements Document summarizing high-level project goals, roles, and access controls.
+      - docs/prd.md: Product Requirements Document outlining functional/non-functional requirements, layouts, and menu mappings.
+      - docs/hld.md: High Level Design describing system components, API decoupling, network/caching logic, and architecture.
+      - docs/lld.md: Low Level Design describing low-level structure (3-layer frontend, MVC backend), database schema performance details, and security policies.
+    - Purpose: These files are primarily maintained for human developers to easily onboard and understand what the system represents.
+  Infrastructure & CI/CD Deployment:
+    - Target Provider: Amazon Web Services (AWS) in the ap-south-1 (Mumbai) region.
+    - Cloud Infrastructure (Terraform 1.5.0):
+      - Provisioning: Managed via environment-specific Terraform directories (`deployments/terraform/environments/`).
+      - Backend Host: EC2 instance running Ubuntu.
+      - Frontend Host: S3 bucket integrated with a CloudFront CDN distribution for static assets delivery and cache invalidation.
+      - Configuration Storage: AWS Secrets Manager stores and resolves sensitive application environment configurations.
+    - Configuration Management (Ansible):
+      - App Deployment: Playbook (`deployments/ansible/site.yml`) manages Java runtime setup and installs/runs the backend service JAR on the target EC2 host.
+    - Database Migrations:
+      - Execution: Managed via Supabase CLI and pushed to target projects during deploy cycles.
+    - CI/CD Orchestration:
+      - Workflow: GitHub Actions (`.github/workflows/infra-deploy.yml`) orchestrates environment setup, AWS OIDC connection, Terraform provisioning/teardown, Supabase schema migration, Maven backend build (JDK 25), Node frontend compilation, Ansible host configuration, and CloudFront CDN invalidations.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+
+rules:
+  proposal:
+    - Highlight strict adherence to SOLID, DRY, and KISS design principles.
+    - Explicitly confirm that the frontend communicates with the database/Supabase exclusively through backend API proxy endpoints.
+    - Specify component styling using Hero UI customized for both light and dark themes matching docs/genlab-design.json, but keep these custom theme changes parameterized and disabled (in wait) until explicit design approval is received to enable them.
+  specs:
+    - Ensure frontend specifications map to the 3-layer architecture (API Layer with Axios, Data Layer with Zustand, View Layer with Hero UI).
+    - Ensure backend specifications follow the Model-Repository-Service-Controller architecture pattern with DTO/Entity decoupling.
+    - Verify that all database schemas and queries document indexing strategies and RLS policies (with auth.uid() optimization).
+    - Mandate that session lifetime duration (30 days) is configurable in a single centralized configuration file on each side.
+    - Always keep the documentation files (docs/brd.md, docs/prd.md, docs/hld.md, docs/lld.md) in sync with changes made to config.yaml and spec files (and vice versa; updates in the documentation files must also be reflected in openspec/config.yaml and specs).
+    - Ensure that any architectural or configuration changes made within the app/ and deployments/ directories propagate to update the project description and context in openspec/config.yaml.
+    - Any changes made and confirmed in openspec/config.yaml must trigger a new OpenSpec proposal to implement and track the changes.
+  tasks:
+    - Organize task breakdown sequentially according to backend (Controller/Service/Repository) and frontend (API/Data/View) layers.

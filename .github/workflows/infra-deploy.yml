@@ -42,7 +42,31 @@ jobs:
       supabase_mode: ${{ steps.set-env.outputs.supabase_mode }}
       supabase_project_ref: ${{ steps.set-env.outputs.supabase_project_ref }}
       action: ${{ steps.set-env.outputs.action }}
+      run_backend: ${{ steps.set-outputs.outputs.run_backend }}
+      run_frontend: ${{ steps.set-outputs.outputs.run_frontend }}
+      run_supabase: ${{ steps.set-outputs.outputs.run_supabase }}
+      run_terraform: ${{ steps.set-outputs.outputs.run_terraform }}
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Detect Changed Paths
+        id: filter
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            backend:
+              - 'app/backend/**'
+            frontend:
+              - 'app/frontend/**'
+            supabase:
+              - 'deployments/supabase/**'
+            terraform:
+              - 'deployments/terraform/**'
+              - '.github/workflows/infra-deploy.yml'
+
       - id: set-env
         run: |
           # 1. Determine Environment
@@ -69,8 +93,46 @@ jobs:
           echo "supabase_mode=${{ vars.SUPABASE_BRANCH_MODE }}" >> $GITHUB_OUTPUT
           echo "supabase_project_ref=${{ secrets.SUPABASE_PROJECT_REF_PROD }}" >> $GITHUB_OUTPUT
 
+      - id: set-outputs
+        run: |
+          RUN_BACKEND="false"
+          RUN_FRONTEND="false"
+          RUN_SUPABASE="false"
+          RUN_TERRAFORM="false"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            RUN_BACKEND="true"
+            RUN_FRONTEND="true"
+            RUN_SUPABASE="true"
+            RUN_TERRAFORM="true"
+          else
+            if [ "${{ steps.filter.outputs.backend }}" = "true" ]; then
+              RUN_BACKEND="true"
+            fi
+            if [ "${{ steps.filter.outputs.frontend }}" = "true" ]; then
+              RUN_FRONTEND="true"
+            fi
+            if [ "${{ steps.filter.outputs.supabase }}" = "true" ]; then
+              RUN_SUPABASE="true"
+            fi
+            if [ "${{ steps.filter.outputs.terraform }}" = "true" ]; then
+              RUN_TERRAFORM="true"
+            fi
+          fi
+
+          echo "run_backend=$RUN_BACKEND" >> $GITHUB_OUTPUT
+          echo "run_frontend=$RUN_FRONTEND" >> $GITHUB_OUTPUT
+          echo "run_supabase=$RUN_SUPABASE" >> $GITHUB_OUTPUT
+
+          RUN_TF="false"
+          if [ "$RUN_TERRAFORM" = "true" ] || [ "$RUN_BACKEND" = "true" ] || [ "$RUN_FRONTEND" = "true" ] || [ "$RUN_SUPABASE" = "true" ]; then
+            RUN_TF="true"
+          fi
+          echo "run_terraform=$RUN_TF" >> $GITHUB_OUTPUT
+
   terraform:
     needs: determine-env
+    if: needs.determine-env.outputs.run_terraform == 'true'
     runs-on: ubuntu-latest
     outputs:
       instance_public_ip: ${{ steps.tf-apply.outputs.instance_public_ip }}
@@ -150,7 +212,7 @@ jobs:
 
   supabase-migrations:
     needs: [determine-env, terraform]
-    if: needs.determine-env.outputs.action == 'apply'
+    if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_supabase == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -183,7 +245,7 @@ jobs:
 
   build-backend:
     needs: determine-env
-    if: needs.determine-env.outputs.action == 'apply'
+    if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -209,7 +271,7 @@ jobs:
 
   build-frontend:
     needs: determine-env
-    if: needs.determine-env.outputs.action == 'apply'
+    if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -236,7 +298,7 @@ jobs:
 
   ansible-deploy:
     needs: [determine-env, terraform, build-backend]
-    if: needs.determine-env.outputs.action == 'apply'
+    if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -280,7 +342,7 @@ jobs:
 
   deploy-frontend:
     needs: [determine-env, terraform, build-frontend]
-    if: needs.determine-env.outputs.action == 'apply'
+    if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
