@@ -2,7 +2,6 @@ package cc.genlab.genlablaunchpadlmsapi.config;
 
 import cc.genlab.genlablaunchpadlmsapi.filter.SupabaseJwtFilter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -26,9 +25,7 @@ import java.util.stream.Collectors;
 public class SecurityConfig {
 
     private final SupabaseProperties supabaseProperties;
-
-    @Value("${cors.allowed-origins:*}")
-    private String allowedOrigins;
+    private final CorsProperties corsProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -50,6 +47,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         List<String> origins = List.of();
+        String allowedOrigins = corsProperties.getAllowedOrigins();
         if (allowedOrigins != null) {
             origins = Arrays.stream(allowedOrigins.split(","))
                     .map(s -> s.trim())

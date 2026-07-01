@@ -3,8 +3,8 @@ package cc.genlab.genlablaunchpadlmsapi.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import cc.genlab.genlablaunchpadlmsapi.model.dto.response.PresignedUrlResponse;
+import cc.genlab.genlablaunchpadlmsapi.config.AwsProperties;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -28,15 +28,19 @@ public class StorageService {
 
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
+    private final AwsProperties awsProperties;
 
-    @Value("${aws.s3.bucket}")
-    private String bucketName;
+    private String getBucketName() {
+        return awsProperties.getS3().getBucket();
+    }
 
-    @Value("${aws.cdn.url}")
-    private String cdnBaseUrl;
+    private String getCdnBaseUrl() {
+        return awsProperties.getCdn().getUrl();
+    }
 
     @PostConstruct
     public void init() {
+        String bucketName = getBucketName();
         try {
             s3Client.headBucket(HeadBucketRequest.builder()
                     .bucket(bucketName)
@@ -61,6 +65,7 @@ public class StorageService {
             return null;
         }
         String cleanKey = key.startsWith("/") ? key.substring(1) : key;
+        String cdnBaseUrl = getCdnBaseUrl();
         return cdnBaseUrl.endsWith("/") ? cdnBaseUrl + cleanKey : cdnBaseUrl + "/" + cleanKey;
     }
 
@@ -68,6 +73,7 @@ public class StorageService {
      * Generates a presigned PUT URL for uploading a file to S3.
      */
     public String generatePresignedUploadUrl(String key, String contentType) {
+        String bucketName = getBucketName();
         log.info("Generating presigned upload URL for key: {}, contentType: {} in bucket: {}", key, contentType, bucketName);
         
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -92,6 +98,7 @@ public class StorageService {
         if (key == null || key.trim().isEmpty()) {
             return null;
         }
+        String bucketName = getBucketName();
         log.info("Generating presigned download URL for key: {} in bucket: {}", key, bucketName);
 
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
@@ -115,6 +122,7 @@ public class StorageService {
         if (key == null || key.trim().isEmpty()) {
             return;
         }
+        String bucketName = getBucketName();
         log.info("Deleting S3 object for key: {} in bucket: {}", key, bucketName);
         try {
             DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
@@ -145,6 +153,7 @@ public class StorageService {
      * Uploads raw bytes to S3 with a specific content type.
      */
     public void uploadBytes(String key, byte[] bytes, String contentType) {
+        String bucketName = getBucketName();
         log.info("Uploading {} bytes to S3 key: {} in bucket: {}", bytes.length, key, bucketName);
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
