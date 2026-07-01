@@ -42,11 +42,15 @@ The database module SHALL provision secure database infrastructure and database 
 - **THEN** it MUST provision an RDS instance or DB cluster and output the host connection string and security details, without exposing actual root credentials in git
 
 ### Requirement: Static Frontend Hosting
-The frontend module SHALL provision resources suitable for serving a static React web application.
+The frontend module SHALL provision resources suitable for serving a static React web application, parameterized by an `enable_web_hosting` toggle to determine domain routing modes.
 
-#### Scenario: Static frontend hosting setup
-- **WHEN** the frontend module is applied
-- **THEN** it MUST provision an S3 bucket configured for static web hosting and integrate with a CloudFront CDN distribution for SSL/TLS caching
+#### Scenario: Bucket hosting mode (enable_web_hosting is false)
+- **WHEN** the frontend module is applied with `enable_web_hosting` disabled
+- **THEN** it MUST provision an S3 bucket configured for static web hosting and integrate with a CloudFront CDN distribution mapped to a CDN subdomain (e.g., `cdn.${root_domain}`)
+
+#### Scenario: Website hosting mode (enable_web_hosting is true)
+- **WHEN** the frontend module is applied with `enable_web_hosting` enabled
+- **THEN** it MUST provision an S3 bucket configured for static web hosting and integrate with a CloudFront CDN distribution mapped to the apex domain (e.g., `${root_domain}`) and a `www` subdomain alias (e.g., `www.${root_domain}`)
 
 ### Requirement: Dynamic Domain Configuration
 The infrastructure provisioning process SHALL parameterize DNS records, ACM certificates, and aliases to support frictionless domain migrations.
@@ -77,3 +81,11 @@ The infrastructure provisioning process SHALL define a Service Catalog AppRegist
 #### Scenario: Tag propagation across sub-modules
 - **WHEN** backend, frontend, or database resources are created
 - **THEN** they MUST be configured with the specific `awsApplication` tag corresponding to the AppRegistry application ARN to allow monitoring and billing grouping
+
+### Requirement: Private Asset Storage Bucket
+The AWS infrastructure module SHALL provision a private S3 bucket dedicated to student asset storage (profile photos and address proofs).
+
+#### Scenario: Verify private S3 bucket parameters
+- **WHEN** the S3 assets module is applied
+- **THEN** it MUST provision an S3 bucket with all public access blocked, bucket-level encryption enabled, and output the bucket's name.
+

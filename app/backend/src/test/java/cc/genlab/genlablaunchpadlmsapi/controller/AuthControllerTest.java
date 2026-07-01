@@ -1,19 +1,17 @@
 package cc.genlab.genlablaunchpadlmsapi.controller;
 
-import cc.genlab.genlablaunchpadlmsapi.repository.MentorRepository;
-import cc.genlab.genlablaunchpadlmsapi.repository.StudentRepository;
-import cc.genlab.genlablaunchpadlmsapi.config.SupabaseProperties;
-import org.junit.jupiter.api.BeforeEach;
+import cc.genlab.genlablaunchpadlmsapi.controller.shared.AuthController;
+import cc.genlab.genlablaunchpadlmsapi.service.AuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Optional;
-
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -26,26 +24,14 @@ class AuthControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private StudentRepository studentRepository;
-
-    @MockitoBean
-    private MentorRepository mentorRepository;
-
-    @MockitoBean
-    private SupabaseProperties supabaseProperties;
-
-    @BeforeEach
-    void setUp() {
-        when(supabaseProperties.getUrl()).thenReturn("http://localhost:54321");
-        when(supabaseProperties.getAnonKey()).thenReturn("mock-anon-key");
-        when(supabaseProperties.getSeededAdmins()).thenReturn("admin@genlab.cc,superadmin@genlab.cc");
-    }
+    private AuthService authService;
 
     @Test
     void studentSendOtp_withUnregisteredPhone_shouldReturnBadRequest() throws Exception {
         // Arrange
         String phone = "+1234567890";
-        when(studentRepository.findByPhone(phone)).thenReturn(Optional.empty());
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student is not registered. Only sign-in is allowed."))
+                .when(authService).sendStudentOtp(phone);
 
         // Act & Assert
         mockMvc.perform(post("/auth/student/send-otp")
@@ -82,7 +68,8 @@ class AuthControllerTest {
     void mentorSendOtp_withUnregisteredMentor_shouldReturnBadRequest() throws Exception {
         // Arrange
         String email = "alice.genlab@gmail.com";
-        when(mentorRepository.findByEmail(email)).thenReturn(Optional.empty());
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mentor is not registered. Only sign-in is allowed."))
+                .when(authService).sendMentorOtp(email);
 
         // Act & Assert
         mockMvc.perform(post("/auth/mentor/send-otp")

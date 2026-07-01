@@ -53,3 +53,13 @@ variable "db_password_override" {
   default     = null
   sensitive   = true
 }
+
+variable "s3_bucket_name" {
+  description = "The S3 bucket name for user assets uploads"
+  type        = string
+}
+
+variable "s3_region" {
+  description = "The S3 bucket region for user assets uploads"
+  type        = string
+}

@@ -130,4 +130,5 @@ terraform.rc
 # Miscellaneous & Tooling
 # ==========================================
 HELP.md
-graphify-out/
+graphify-out/
+local-s3-data/

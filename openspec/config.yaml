@@ -6,7 +6,7 @@ context: |
   This is the project for GenLab Launchpad LMS. The reason for building this application is that the current system is extremely inefficient to scale and manage. The custom-tailored LMS streamlines operations, manual revenue tracking, and analytics, resulting in highly efficient processes with minimal manual effort, leading to more efficient and happy employees.
   
   The application is built using a centralized, Zoho Invoice-style dashboard layout with a dark left sidebar navigation and role-based accessibility:
-  - Admins (HRs) manage course students (under 'Students'/'Customers'), catalog courses (under 'Courses'/'Items'), schedule slots (under 'Slots'/'slots'), register mentors (under 'Resource'/'mentor'), track manual payments (under 'Pending Payments'/'Payments'), and analyze platform stats (under 'Analytics'/'Home').
+  - Admins (HRs) manage course students (under 'Students'/'Customers'), catalog courses (under 'Courses'/'Items'), schedule slots (under 'Slots'/'slots'), register mentors (under 'Resource'/'mentor'), track manual payments (under 'Pending Payments'/'Payments'), analyze platform stats (under 'Analytics'/'Home'), and manage student enrollments/slot assignments.
   - Mentors sign in to view their assigned slots and schedule availability.
   - Students sign in via phone OTP to view assigned courses, track learning journeys, check scheduled slots, and review payment history.
   
@@ -20,7 +20,7 @@ context: |
     - Roles:
       - student: Phone-only OTP sign-in. Can view their own assigned courses, learning journeys, slot schedules, and personal payment history.
       - mentor: Email-based sign-in (email ends with `.genlab@gmail.com`). Can view their assigned mentoring slots, schedules, and manage slot status/feedback.
-      - admin (HRs): Email-based sign-in (email ends with `@genlab.cc`). Full administrative access: can provision and create new user accounts, assign courses, schedule/manage mentor slots, view dashboards/analytics, and manually log/track student payments.
+      - admin (HRs): Email-based sign-in (email ends with `@genlab.cc`). Full administrative access: can provision and create new user accounts, assign courses, schedule/manage mentor slots, manage student enrollments and bulk assignments, view dashboards/analytics, and manually log/track student payments.
     - Access Level Isolation: Enforce customized sidebar navigation layouts, workspace views, and backend REST API endpoint access per role level.
     - Restrictions: Students and mentors are sign-in only (no self-registration). Only admins (HRs) can provision new logins.
     - Aspect-Oriented Security: Enforced via @RequiresRole aspect checking userRole mapping.
@@ -29,7 +29,7 @@ context: |
       - Duration: Each login session must last exactly 30 days across both backend and frontend layers.
       - Configuration: The session duration must be configurable in a single centralized location on each side (e.g., inside the backend's `.env`/`application.yaml` configurations, and inside a single config file or environment variable on the frontend).
   Database Security (RLS & Triggers):
-    - Row Level Security (RLS): Enabled on all public schema tables (students, mentors, courses, user_roles).
+    - Row Level Security (RLS): Enabled on all public schema tables (students_t, mentors_t, courses_t, user_roles_t, enrollments_t).
     - RLS Optimization: Always wrap auth.uid() in a subquery e.g. (select auth.uid()) to allow Postgres query planner to cache it once per query execution.
     - Permissive Policies: Separate writes into distinct INSERT, UPDATE, and DELETE policies (do not use ALL) to avoid multiple permissive policy SELECT warnings.
     - Function Security: Helper functions and triggers (like get_user_role and handle_new_user) must be placed in a non-exposed 'internal' schema with search_path explicitly set to public to prevent mutable search path vulnerabilities and hide functions from external RPC routes.
@@ -74,10 +74,10 @@ context: |
     - Core Principles: Strict adherence to SOLID, DRY, and KISS principles across all development boundaries (backend codebase, frontend application, and database designs).
     - Backend Architecture:
       - Layered Structure: Follow the Model-Repository-Service-Controller architecture pattern:
-        - Model Layer: Defines database entities, DTOs, and request/response data shapes.
+        - Model Layer: Defines database entities, DTOs (organized into request, response subpackages, and base package for domain DTOs), and request/response data shapes.
         - Repository Layer: Spring Data JPA interfaces responsible for database access and transactional persistence.
-        - Service Layer: Holds the core business logic, validation logic, transaction management, and cache handling.
-        - Controller Layer: REST controllers handling endpoints routing, request validation, handling CORS/security, and mapping HTTP requests.
+        - Service Layer: Holds all business logic, validation logic, transaction management, and cache handling.
+        - Controller Layer: REST controllers handling endpoints routing and request/response parsing ONLY (business logic and validation must not be present here).
       - Decoupling: Decouple database entity structures from transfer data shapes (DTOs) exposed at controllers.
       - Asset/Image Storage: Store and retrieve all user uploaded image assets (e.g., profile photos, address proof files) via AWS S3 buckets, provisioned and configured via Terraform.
     - Database Design & Performance:
@@ -101,7 +101,7 @@ context: |
     - Cloud Infrastructure (Terraform 1.5.0):
       - Provisioning: Managed via environment-specific Terraform directories (`deployments/terraform/environments/`).
       - Backend Host: EC2 instance running Ubuntu.
-      - Frontend Host: S3 bucket integrated with a CloudFront CDN distribution for static assets delivery and cache invalidation.
+      - Frontend Host: S3 bucket integrated with a CloudFront CDN distribution for static assets delivery and cache invalidation. Parametric `enable_web_hosting` toggle controls routing mode: disabled uses bucket hosting (with `cdn.domain_url`) and enabled uses website hosting (with apex and `www.domain_url`).
       - Configuration Storage: AWS Secrets Manager stores and resolves sensitive application environment configurations.
     - Configuration Management (Ansible):
       - App Deployment: Playbook (`deployments/ansible/site.yml`) manages Java runtime setup and installs/runs the backend service JAR on the target EC2 host.

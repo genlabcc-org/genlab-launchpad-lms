@@ -78,6 +78,13 @@ locals {
   prod_db_password = var.use_branching ? jsondecode(data.aws_secretsmanager_secret_version.prod_secret_version[0].secret_string)["spring.datasource.password"] : null
 }
 
+module "s3_assets" {
+  source          = "../../modules/s3_assets"
+  environment     = "dev"
+  application_tag = local.application_tag
+  allowed_origins = ["http://localhost:5173", "https://${local.frontend_domain}"]
+}
+
 module "secrets" {
   source                    = "../../modules/secrets"
   environment               = "dev"
@@ -87,6 +94,8 @@ module "secrets" {
   supabase_anon_key         = module.database.anon_key
   supabase_service_role_key = module.database.service_role_key
   db_password_override      = local.prod_db_password
+  s3_bucket_name            = module.s3_assets.bucket_name
+  s3_region                 = var.aws_region
 }
 
 module "database" {

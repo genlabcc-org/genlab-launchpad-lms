@@ -33,6 +33,10 @@
 - Audit panel for manually logging student course fees.
 - Update payment statuses (e.g., Pending, Paid) manually by Admins.
 
+### 1.6. Enrollment Management
+- **Enrollments CRUD**: Admins can list, retrieve, create, update, and delete any student enrollment (slot assignment).
+- **Bulk Enrollment**: Admins can enroll multiple students at once through a bulk enrollment request.
+
 ---
 
 ## 2. Interface Layout & Sidebar Menu Mappings
@@ -66,7 +70,7 @@ The dashboard UI follows a Zoho Invoice-styled structure: a dark left sidebar, t
 
 ### 3.4. CI/CD & Cloud Infrastructure
 - **Infrastructure Tools**: Terraform 1.5.0 for environment orchestration and AWS resource management.
-- **Compute & CDN Services**: AWS EC2 (backend), S3 and CloudFront CDN (frontend hosting).
+- **Compute & CDN Services**: AWS EC2 (backend), S3 and CloudFront CDN (frontend hosting). Parameterized by an `enable_web_hosting` variable to toggle between bucket hosting (mapping to `cdn.domain_url`) and website hosting (mapping to the apex and `www.domain_url`).
 - **Secrets Management**: Dynamic secrets retrieval from AWS Secrets Manager `/config/genlab-launchpad-lms-api_<env>`.
 - **Deploy Automation**: Ansible playbooks for server setup and host deployments; Supabase CLI for database schema migrations.
 - **Workflow Runner**: GitHub Actions pipelines (`.github/workflows/infra-deploy.yml`) resolving targeted branches (dev, staging, prod) and orchestrating deployment cycles. For automated push events, jobs execute conditionally (backend deploys only if `app/backend/` changes, frontend deploys only if `app/frontend/` changes, and Supabase migrations deploy only if `deployments/supabase/` changes); manual triggers (`workflow_dispatch`) force deploy all components.

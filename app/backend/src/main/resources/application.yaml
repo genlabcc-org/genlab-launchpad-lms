@@ -10,13 +10,27 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
+  cloud:
+    aws:
+      secretsmanager:
+        enabled: false
+      region:
+        static: ${AWS_S3_REGION:ap-south-1}
 
 supabase:
   url: ${SUPABASE_URL:http://localhost:54321}
-  anon-key: ${SUPABASE_ANON_KEY:your-local-anon-key}
+  anon-key: ${SUPABASE_ANON_KEY:sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH}
   jwt-secret: ${SUPABASE_JWT_SECRET:your-local-jwt-secret}
-  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:your-local-service-role-key}
-  seeded-admins: ${SUPABASE_SEEDED_ADMINS:admin@genlab.cc}
+  service-role-key: ${SUPABASE_SERVICE_ROLE_KEY:sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz}
+  seeded-admins: ${SUPABASE_SEEDED_ADMINS:admin@genlab.cc,john.doe@genlab.cc}
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:genlab-lms-assets-local}
+    region: ${AWS_S3_REGION:ap-south-1}
+    endpoint: ${AWS_S3_ENDPOINT:}
+  cdn:
+    url: ${AWS_CDN_URL:http://localhost:9000/genlab-lms-assets-local}
 
 ---
 spring:
@@ -24,6 +38,12 @@ spring:
     activate:
       on-profile: "aws & dev"
     import: "aws-secretsmanager:/config/genlab-launchpad-lms-api_dev"
+  cloud:
+    aws:
+      secretsmanager:
+        enabled: true
+      region:
+        static: ap-south-1
 
 ---
 spring:
@@ -31,6 +51,12 @@ spring:
     activate:
       on-profile: "aws & staging"
     import: "aws-secretsmanager:/config/genlab-launchpad-lms-api_staging"
+  cloud:
+    aws:
+      secretsmanager:
+        enabled: true
+      region:
+        static: ap-south-1
 
 ---
 spring:
@@ -38,3 +64,9 @@ spring:
     activate:
       on-profile: "aws & prod"
     import: "aws-secretsmanager:/config/genlab-launchpad-lms-api_prod"
+  cloud:
+    aws:
+      secretsmanager:
+        enabled: true
+      region:
+        static: ap-south-1

@@ -3,10 +3,12 @@ package cc.genlab.genlablaunchpadlmsapi.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "mentors", schema = "public")
+@Table(name = "mentors_t", schema = "public")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,4 +29,8 @@ public class Mentor {
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private OffsetDateTime createdAt = OffsetDateTime.now();
+
+    @ManyToMany(mappedBy = "mentors", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<Course> courses = new ArrayList<>();
 }

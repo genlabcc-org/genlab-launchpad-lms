@@ -8,3 +8,17 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
+  cloud:
+    aws:
+      secretsmanager:
+        enabled: false
+      region:
+        static: ap-south-1
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:genlab-lms-assets-local}
+    region: ${AWS_S3_REGION:ap-south-1}
+    endpoint: ${AWS_S3_ENDPOINT:}
+  cdn:
+    url: ${AWS_CDN_URL:http://localhost:9000/genlab-lms-assets-local}

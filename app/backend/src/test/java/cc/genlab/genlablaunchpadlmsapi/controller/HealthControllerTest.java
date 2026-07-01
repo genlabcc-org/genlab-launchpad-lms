@@ -1,5 +1,6 @@
 package cc.genlab.genlablaunchpadlmsapi.controller;
 
+import cc.genlab.genlablaunchpadlmsapi.controller.shared.HealthController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;

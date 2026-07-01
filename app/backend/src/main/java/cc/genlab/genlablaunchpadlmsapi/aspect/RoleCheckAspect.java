@@ -7,11 +7,14 @@ import lombok.RequiredArgsConstructor;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.lang.reflect.Method;
 
 @Aspect
 @Component
@@ -20,8 +23,23 @@ public class RoleCheckAspect {
 
     private final RoleService roleService;
 
-    @Before("@annotation(requiresRole)")
-    public void checkRole(JoinPoint joinPoint, RequiresRole requiresRole) {
+    @Before("@within(cc.genlab.genlablaunchpadlmsapi.annotation.RequiresRole) || @annotation(cc.genlab.genlablaunchpadlmsapi.annotation.RequiresRole)")
+    public void checkRole(JoinPoint joinPoint) {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        Method method = signature.getMethod();
+
+        // 1. Check method-level annotation first
+        RequiresRole requiresRole = method.getAnnotation(RequiresRole.class);
+
+        // 2. Fallback to class-level annotation
+        if (requiresRole == null) {
+            requiresRole = joinPoint.getTarget().getClass().getAnnotation(RequiresRole.class);
+        }
+
+        if (requiresRole == null) {
+            return;
+        }
+
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attrs == null) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No active request context found");
@@ -36,9 +54,20 @@ public class RoleCheckAspect {
 
         String userRole = roleService.getRoleForUser(userId);
 
-        if (userRole == null || !userRole.equalsIgnoreCase(requiresRole.value())) {
+        boolean hasAccess = false;
+        if (userRole != null) {
+            for (String allowedRole : requiresRole.value()) {
+                if (allowedRole.equalsIgnoreCase(userRole)) {
+                    hasAccess = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hasAccess) {
+            String requiredRoles = String.join(", ", requiresRole.value());
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Access denied. Required role: " + requiresRole.value().toLowerCase() + ", actual role: " + (userRole != null ? userRole : "none"));
+                    "Access denied. Required role(s): [" + requiredRoles + "], actual role: " + (userRole != null ? userRole : "none"));
         }
     }
 }

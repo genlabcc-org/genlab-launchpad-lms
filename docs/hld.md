@@ -50,7 +50,7 @@ graph TD
 
 ### 3.4. Infrastructure & CI/CD
 - **Cloud Provider**: Amazon Web Services (AWS) in the `ap-south-1` region.
-- **Infrastructure as Code (IaC)**: Terraform 1.5.0.
+- **Infrastructure as Code (IaC)**: Terraform 1.5.0, utilizing an `enable_web_hosting` flag in the frontend module to switch between CDN-only and apex/www site hosting routes.
 - **Configuration Management**: Ansible.
 - **Secret Storage**: AWS Secrets Manager.
 - **CI/CD Runner**: GitHub Actions.

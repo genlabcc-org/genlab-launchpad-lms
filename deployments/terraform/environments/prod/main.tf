@@ -64,6 +64,13 @@ locals {
   }
 }
 
+module "s3_assets" {
+  source          = "../../modules/s3_assets"
+  environment     = "prod"
+  application_tag = local.application_tag
+  allowed_origins = ["https://${var.root_domain_name}", "https://www.${var.root_domain_name}"]
+}
+
 module "secrets" {
   source                    = "../../modules/secrets"
   environment               = "prod"
@@ -72,6 +79,8 @@ module "secrets" {
   supabase_url              = module.database.supabase_url
   supabase_anon_key         = module.database.anon_key
   supabase_service_role_key = module.database.service_role_key
+  s3_bucket_name            = module.s3_assets.bucket_name
+  s3_region                 = var.aws_region
 }
 
 module "database" {

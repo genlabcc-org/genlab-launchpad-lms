@@ -38,6 +38,8 @@ resource "aws_secretsmanager_secret_version" "backend_secret_version" {
     "supabase.anon-key"          = var.supabase_anon_key
     "supabase.jwt-secret"        = var.supabase_jwt_secret
     "supabase.service-role-key"  = var.supabase_service_role_key
+    "aws.s3.bucket"              = var.s3_bucket_name
+    "aws.s3.region"              = var.s3_region
   })
 
   # Ignore subsequent updates to the secret version content to avoid overwriting manually updated secrets
