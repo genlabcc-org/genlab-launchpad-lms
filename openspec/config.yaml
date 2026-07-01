@@ -71,7 +71,7 @@ context: |
       - Pending Payments (maps to 'Payments' menu item): Auditing, tracking, and manual updating of outstanding student course fees.
       - Slots (maps to 'slots' menu item): Custom calendar/scheduler view displaying assigned and open slots, mapping students to their respective mentors. Supports customizable slot timings (such as 10am-12pm, 2pm-4pm, 4pm-6pm) and admin-driven creation of new slots.
   Architectural Guidelines & Design Principles:
-    - Core Principles: Strict adherence to SOLID, DRY, and KISS principles across all development boundaries (backend codebase, frontend application, and database designs).
+    - Core Principles: Strict adherence to SOLID (high priority), KISS, and DRY principles across all development boundaries (backend codebase, frontend application, and database designs). Always follow these principles while writing any code.
     - Backend Architecture:
       - Layered Structure: Follow the Model-Repository-Service-Controller architecture pattern:
         - Model Layer: Defines database entities, DTOs (organized into request, response subpackages, and base package for domain DTOs), and request/response data shapes.
@@ -113,7 +113,7 @@ context: |
 
 rules:
   proposal:
-    - Highlight strict adherence to SOLID, DRY, and KISS design principles.
+    - Highlight strict adherence to SOLID (high priority), KISS, and DRY principles while writing any code.
     - Explicitly confirm that the frontend communicates with the database/Supabase exclusively through backend API proxy endpoints.
     - Specify component styling using Hero UI customized for both light and dark themes matching docs/genlab-design.json, but keep these custom theme changes parameterized and disabled (in wait) until explicit design approval is received to enable them.
   specs:
@@ -124,5 +124,6 @@ rules:
     - Always keep the documentation files (docs/brd.md, docs/prd.md, docs/hld.md, docs/lld.md) in sync with changes made to config.yaml and spec files (and vice versa; updates in the documentation files must also be reflected in openspec/config.yaml and specs).
     - Ensure that any architectural or configuration changes made within the app/ and deployments/ directories propagate to update the project description and context in openspec/config.yaml.
     - Any changes made and confirmed in openspec/config.yaml must trigger a new OpenSpec proposal to implement and track the changes.
+    - Always follow the SOLID (high priority), KISS, and DRY principles while writing any code.
   tasks:
     - Organize task breakdown sequentially according to backend (Controller/Service/Repository) and frontend (API/Data/View) layers.

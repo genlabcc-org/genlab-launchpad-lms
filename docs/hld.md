@@ -81,3 +81,9 @@ graph TD
     BuildB --> Ansible[Run Ansible: Deploy JAR on EC2 backend]
     BuildF --> S3[Sync static assets to AWS S3 & invalidate CloudFront CDN]
 ```
+
+---
+
+## 5. Architectural Guidelines & Design Principles
+- **Core Principles**: Strict adherence to SOLID (high priority), KISS, and DRY principles across all development boundaries (backend codebase, frontend application, and database designs). Always follow these principles while writing any code.
+
