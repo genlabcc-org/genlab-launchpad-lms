@@ -46,13 +46,15 @@ public class AuthService {
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(Map.of(
                             "phone", phone,
-                            "create_user", false
+                            "create_user", true
                      ))
                     .retrieve()
                     .toBodilessEntity()
                     .block();
         } catch (ResponseStatusException e) {
             throw e;
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            throw new ResponseStatusException(HttpStatus.valueOf(e.getStatusCode().value()), "Failed to send OTP via Supabase: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to send OTP via Supabase: " + e.getMessage(), e);
         }
@@ -96,6 +98,8 @@ public class AuthService {
                     .block();
         } catch (ResponseStatusException e) {
             throw e;
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            throw new ResponseStatusException(HttpStatus.valueOf(e.getStatusCode().value()), "Failed to send OTP via Supabase: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to send OTP via Supabase: " + e.getMessage(), e);
         }
@@ -139,6 +143,8 @@ public class AuthService {
                     .block();
         } catch (ResponseStatusException e) {
             throw e;
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+            throw new ResponseStatusException(HttpStatus.valueOf(e.getStatusCode().value()), "Failed to send OTP via Supabase: " + e.getResponseBodyAsString(), e);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to send OTP via Supabase: " + e.getMessage(), e);
         }

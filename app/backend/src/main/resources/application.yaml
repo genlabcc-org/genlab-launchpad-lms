@@ -32,6 +32,9 @@ aws:
   cdn:
     url: ${AWS_CDN_URL:http://localhost:9000/genlab-lms-assets-local}
 
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
 ---
 spring:
   config:

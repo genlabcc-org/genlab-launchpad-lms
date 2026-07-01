@@ -116,22 +116,24 @@ VALUES (
   '', '', '', '', '', '', '', ''
 ) ON CONFLICT (id) DO NOTHING;
 
--- Student 4 (local.student@example.com)
-INSERT INTO auth.users (instance_id, id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token, recovery_token, email_change_token_new, phone_change_token, email_change_token_current, reauthentication_token, email_change, phone_change)
+-- Student 4 (local.student@example.com with phone)
+INSERT INTO auth.users (instance_id, id, email, phone, phone_confirmed_at, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token, recovery_token, email_change_token_new, phone_change_token, email_change_token_current, reauthentication_token, email_change, phone_change)
 VALUES (
   '00000000-0000-0000-0000-000000000000',
   '00000000-0000-0000-0000-000000000003',
   'local.student@example.com',
+  '+919003032644',
+  now(),
   crypt('password123', gen_salt('bf')),
   now(),
-  '{"provider": "email", "providers": ["email"]}',
+  '{"provider": "phone", "providers": ["phone", "email"]}',
   '{"name": "Local Student"}',
   now(),
   now(),
   'authenticated',
   'authenticated',
   '', '', '', '', '', '', '', ''
-) ON CONFLICT (id) DO NOTHING;
+) ON CONFLICT (id) DO UPDATE SET phone = EXCLUDED.phone, phone_confirmed_at = EXCLUDED.phone_confirmed_at, raw_app_meta_data = EXCLUDED.raw_app_meta_data;
 
 -- 3. Seed students into public.students_t
 INSERT INTO public.students_t (id, name, email, phone) VALUES
@@ -139,7 +141,7 @@ INSERT INTO public.students_t (id, name, email, phone) VALUES
 ('3b3d31be-696a-49e4-b06d-76079c064e6a', 'Bob Smith', 'bob.smith@example.com', '+919876543202'),
 ('b67cdcf9-bd87-4911-b3e9-a26de6bc6797', 'Charlie Brown', 'charlie.brown@example.com', '+919876543203'),
 ('08d2d5a3-79a1-4a7b-9e41-99f78cfecaf7', 'Evan Wright', 'evan.wright@example.com', '+919876543204'),
-('00000000-0000-0000-0000-000000000003', 'Local Student', 'local.student@example.com', '+919876543210')
+('00000000-0000-0000-0000-000000000003', 'Local Student', 'local.student@example.com', '+919003032644')
 ON CONFLICT (email) DO UPDATE SET
     name = EXCLUDED.name,
     phone = EXCLUDED.phone;
@@ -168,7 +170,8 @@ INSERT INTO auth.identities (id, user_id, provider, provider_id, identity_data, 
 ('00000000-0000-0000-0000-000000000004', 'd7feb61f-0381-42aa-81aa-692947b8711c', 'email', 'alice.johnson@example.com', '{"sub": "d7feb61f-0381-42aa-81aa-692947b8711c", "email": "alice.johnson@example.com", "email_verified": true, "phone_verified": false}', now(), now(), now()),
 ('00000000-0000-0000-0000-000000000005', '3b3d31be-696a-49e4-b06d-76079c064e6a', 'email', 'bob.smith@example.com', '{"sub": "3b3d31be-696a-49e4-b06d-76079c064e6a", "email": "bob.smith@example.com", "email_verified": true, "phone_verified": false}', now(), now(), now()),
 ('00000000-0000-0000-0000-000000000006', 'b67cdcf9-bd87-4911-b3e9-a26de6bc6797', 'email', 'charlie.brown@example.com', '{"sub": "b67cdcf9-bd87-4911-b3e9-a26de6bc6797", "email": "charlie.brown@example.com", "email_verified": true, "phone_verified": false}', now(), now(), now()),
-('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000003', 'email', 'local.student@example.com', '{"sub": "00000000-0000-0000-0000-000000000003", "email": "local.student@example.com", "email_verified": true, "phone_verified": false}', now(), now(), now())
+('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000003', 'email', 'local.student@example.com', '{"sub": "00000000-0000-0000-0000-000000000003", "email": "local.student@example.com", "email_verified": true, "phone_verified": false}', now(), now(), now()),
+('00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000003', 'phone', '+919003032644', '{"sub": "00000000-0000-0000-0000-000000000003", "phone": "+919003032644", "phone_verified": true}', now(), now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 -- 7. Seed Mentor Schedules in mentor_schedules_t
