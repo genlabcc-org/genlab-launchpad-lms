@@ -27,5 +27,5 @@ COPY --from=builder /app/target/*.jar app.jar
 ENV PORT=8080
 EXPOSE ${PORT}
 
-# Start Spring Boot app, binding server.port to Render's dynamic $PORT
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar app.jar"]
+# Start Spring Boot app, binding server.port to Render's dynamic $PORT with IPv6/dual-stack enabled
+ENTRYPOINT ["sh", "-c", "java -Djava.net.preferIPv4Stack=false -Djava.net.preferIPv6Addresses=true -Dserver.port=${PORT:-8080} -jar app.jar"]
