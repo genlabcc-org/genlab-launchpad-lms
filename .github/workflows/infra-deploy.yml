@@ -151,10 +151,11 @@ jobs:
       #     aws-region: ap-south-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+          terraform_wrapper: false
 
       # - name: Terraform Init Metadata
       #   if: needs.determine-env.outputs.action == 'apply'

@@ -20,6 +20,9 @@ CREATE TABLE IF NOT EXISTS public.courses_t (
     title TEXT NOT NULL,
     description TEXT,
     price NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    duration_in_days INTEGER NOT NULL DEFAULT 90,
+    syllabus JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -37,6 +40,7 @@ CREATE TABLE IF NOT EXISTS public.students_t (
     student_type TEXT,
     referral_source TEXT,
     profile_photo_key TEXT,
+    interested_course_id UUID REFERENCES public.courses_t(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -46,6 +50,15 @@ CREATE TABLE IF NOT EXISTS public.mentors_t (
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create batches_t table
+CREATE TABLE IF NOT EXISTS public.batches_t (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(250) NOT NULL,
+    start_date DATE NOT NULL,
+    cutoff_date DATE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Create course_mentors_t join table
@@ -92,9 +105,16 @@ CREATE TABLE IF NOT EXISTS public.system_settings_t (
 -- Seed default global settings for capacity limits
 INSERT INTO public.system_settings_t (key, value)
 VALUES
-    ('max_students_total', '50'),
-    ('max_students_per_mentor', '30')
-ON CONFLICT (key) DO NOTHING;
+    ('max_student_per_slot_all_mentor_all_course', '40'),
+    ('max_student_per_slot_per_mentor', '12')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+
+-- Seed default batches
+INSERT INTO public.batches_t (id, name, start_date, cutoff_date)
+VALUES 
+    ('2026_july_batch_1', '2026 July Batch 1', '2026-07-01', '2026-07-14'),
+    ('2026_july_batch_2', '2026 July Batch 2', '2026-07-15', '2026-07-31')
+ON CONFLICT (id) DO NOTHING;
 
 -- Create mentor_schedules_t table
 CREATE TABLE IF NOT EXISTS public.mentor_schedules_t (
@@ -102,6 +122,7 @@ CREATE TABLE IF NOT EXISTS public.mentor_schedules_t (
     mentor_id UUID NOT NULL REFERENCES public.mentors_t(id) ON DELETE CASCADE,
     course_id UUID NOT NULL REFERENCES public.courses_t(id) ON DELETE CASCADE,
     slot_id UUID NOT NULL REFERENCES public.slots_t(id) ON DELETE CASCADE,
+    batch_id TEXT REFERENCES public.batches_t(id) ON DELETE SET NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -117,6 +138,8 @@ CREATE TABLE IF NOT EXISTS public.enrollments_t (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES public.students_t(id) ON DELETE CASCADE,
     mentor_schedule_id UUID REFERENCES public.mentor_schedules_t(id) ON DELETE SET NULL,
+    batch_id TEXT REFERENCES public.batches_t(id) ON DELETE SET NULL,
+    certificate_key TEXT,
     payment_type TEXT,
     status TEXT DEFAULT 'active' NOT NULL,
     total_amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
@@ -138,9 +161,20 @@ CREATE TABLE IF NOT EXISTS public.payments_t (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Create certificate_generation_tasks_t table for queue processing
+CREATE TABLE IF NOT EXISTS public.certificate_generation_tasks_t (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    enrollment_id UUID NOT NULL REFERENCES public.enrollments_t(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'pending',
+    error_message TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
 -- Create index structures
 CREATE INDEX IF NOT EXISTS enrollments_student_id_idx ON public.enrollments_t(student_id);
 CREATE INDEX IF NOT EXISTS enrollments_status_idx ON public.enrollments_t(status);
+CREATE INDEX IF NOT EXISTS cert_tasks_status_created_idx ON public.certificate_generation_tasks_t(status, created_at);
 
 -- Create get_user_role in internal schema with search_path set to prevent mutable search path vulnerability
 CREATE OR REPLACE FUNCTION internal.get_user_role(u_id UUID)
@@ -194,6 +228,7 @@ CREATE TRIGGER on_auth_user_created
 ALTER TABLE public.students_t ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mentors_t ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.courses_t ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.batches_t ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.course_mentors_t ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles_t ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.slots_t ENABLE ROW LEVEL SECURITY;
@@ -201,6 +236,7 @@ ALTER TABLE public.system_settings_t ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mentor_schedules_t ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.enrollments_t ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payments_t ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.certificate_generation_tasks_t ENABLE ROW LEVEL SECURITY;
 
 -- ─── STUDENTS RLS ────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Allow select for self, mentors, and admins" ON public.students_t;
@@ -253,6 +289,15 @@ CREATE POLICY "Allow delete for admins only" ON public.mentors_t
     FOR DELETE USING (
         internal.get_user_role((select auth.uid())) = 'admin'
     );
+
+-- ─── BATCHES RLS ─────────────────────────────────────────────────────────────
+DROP POLICY IF EXISTS "Allow authenticated users to read batches" ON public.batches_t;
+CREATE POLICY "Allow authenticated users to read batches" ON public.batches_t
+    FOR SELECT TO authenticated USING (true);
+
+DROP POLICY IF EXISTS "Allow authenticated users to modify batches" ON public.batches_t;
+CREATE POLICY "Allow authenticated users to modify batches" ON public.batches_t
+    FOR ALL TO authenticated USING (true);
 
 -- ─── COURSES RLS ─────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Allow public select" ON public.courses_t;
@@ -407,3 +452,18 @@ CREATE POLICY "Students read own payments" ON public.payments_t
 DROP POLICY IF EXISTS "Admins write payments" ON public.payments_t;
 CREATE POLICY "Admins write payments" ON public.payments_t
     FOR ALL USING (internal.get_user_role((select auth.uid())) = 'admin');
+
+-- ─── CERTIFICATE GENERATION TASKS RLS ────────────────────────────────────────
+DROP POLICY IF EXISTS "Admins manage tasks" ON public.certificate_generation_tasks_t;
+CREATE POLICY "Admins manage tasks" ON public.certificate_generation_tasks_t
+    FOR ALL USING (internal.get_user_role((select auth.uid())) = 'admin');
+
+DROP POLICY IF EXISTS "Students read own tasks" ON public.certificate_generation_tasks_t;
+CREATE POLICY "Students read own tasks" ON public.certificate_generation_tasks_t
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.enrollments_t e
+            WHERE e.id = enrollment_id
+              AND e.student_id = (select auth.uid())
+        )
+    );
