@@ -16,4 +16,5 @@ public class CourseRequest {
     private BigDecimal price;
     private List<String> syllabus;
     private List<UUID> mentorIds;
+    private Boolean isActive;
 }

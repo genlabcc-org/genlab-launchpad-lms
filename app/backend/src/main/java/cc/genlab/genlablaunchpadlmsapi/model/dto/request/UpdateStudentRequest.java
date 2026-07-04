@@ -14,7 +14,6 @@ public class UpdateStudentRequest {
     private String email;
     private String phone;
     private String gender;
-    private String personalMobile;
     private String emergencyMobile;
     private String address;
     private String addressProofKey;
@@ -22,7 +21,7 @@ public class UpdateStudentRequest {
     private String studentType;
     private String referralSource;
     private String profilePhotoKey;
-    private Boolean termsAccepted;
+    private UUID interestedCourseId;
 
     // Enrollment updates (optional)
     private UUID registeredCourseId;
@@ -33,4 +32,5 @@ public class UpdateStudentRequest {
     private java.math.BigDecimal totalAmount;
     private String paymentType;
     private String enrollmentStatus;
+    private String batchId;
 }

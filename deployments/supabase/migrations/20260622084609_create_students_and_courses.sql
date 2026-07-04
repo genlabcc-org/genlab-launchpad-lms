@@ -30,7 +30,6 @@ CREATE TABLE IF NOT EXISTS public.students_t (
     email TEXT UNIQUE,
     phone TEXT UNIQUE,
     gender TEXT,
-    personal_mobile TEXT,
     emergency_mobile TEXT,
     address TEXT,
     address_proof_key TEXT,
@@ -38,7 +37,6 @@ CREATE TABLE IF NOT EXISTS public.students_t (
     student_type TEXT,
     referral_source TEXT,
     profile_photo_key TEXT,
-    terms_accepted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

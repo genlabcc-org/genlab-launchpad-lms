@@ -8,5 +8,6 @@ public record StudentScheduleDto(
     SlotDto slot,
     MentorDto mentor,
     LocalDate startDate,
-    LocalDate endDate
+    LocalDate endDate,
+    String batchId
 ) {}

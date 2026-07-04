@@ -29,6 +29,7 @@ public class EnrollmentService implements EnrollmentServicePort {
     private final SystemSettingRepository systemSettingRepository;
     private final PaymentRepository paymentRepository;
     private final StorageService storageService;
+    private final BatchRepository batchRepository;
 
     public List<EnrollmentDto> getAllEnrollments() {
         return enrollmentRepository.findAll().stream()
@@ -86,10 +87,20 @@ public class EnrollmentService implements EnrollmentServicePort {
             validateCapacity(slotId, mentorId, startD, endD);
         }
 
+        String batchId = request.getBatchId();
+        if (batchId == null || batchId.isBlank()) {
+            LocalDate onboardDate = (student.getCreatedAt() != null) ? student.getCreatedAt().toLocalDate() : LocalDate.now();
+            batchId = onboardDate.isBefore(LocalDate.of(2026, 7, 15)) ? "2026_july_batch_1" : "2026_july_batch_2";
+        } else {
+            batchId = batchId.trim().toLowerCase().replace(" ", "_");
+        }
+
+        Batch batch = batchRepository.findById(batchId).orElse(null);
+
         // Find or Create MentorSchedule
         MentorSchedule schedule = null;
         if (mentor != null && course != null && slot != null && startD != null && endD != null) {
-            schedule = getOrCreateMentorSchedule(mentor, course, slot, startD, endD);
+            schedule = getOrCreateMentorSchedule(mentor, course, slot, startD, endD, batch);
         }
 
         java.math.BigDecimal totalAmount = request.getTotalAmount();
@@ -104,12 +115,19 @@ public class EnrollmentService implements EnrollmentServicePort {
         Enrollment enrollment = Enrollment.builder()
                 .student(student)
                 .mentorSchedule(schedule)
-                .paymentType(request.getPaymentType() != null ? PaymentType.fromString(request.getPaymentType()) : null)
+                .paymentType(PaymentType.fromString(request.getPaymentType()))
+                .batch(batch)
                 .status(request.getStatus() != null ? request.getStatus() : "active")
                 .totalAmount(totalAmount)
                 .build();
 
         enrollment = enrollmentRepository.save(enrollment);
+
+        if (course != null || schedule != null) {
+            student.setInterestedCourseId(null);
+            studentRepository.save(student);
+        }
+
         return mapToEnrollmentDto(enrollment);
     }
 
@@ -167,6 +185,15 @@ public class EnrollmentService implements EnrollmentServicePort {
             }
         }
 
+        String batchId = request.getBatchId();
+        if (batchId == null || batchId.isBlank()) {
+            batchId = enrollment.getBatchId();
+        }
+        if (batchId == null || batchId.isBlank()) {
+            LocalDate onboardDate = (enrollment.getStudent().getCreatedAt() != null) ? enrollment.getStudent().getCreatedAt().toLocalDate() : LocalDate.now();
+            batchId = onboardDate.isBefore(LocalDate.of(2026, 7, 15)) ? "JULY BATCH 1" : "JULY BATCH 2";
+        }
+
         if (scheduleChange) {
             if (courseId == null || mentorId == null || slotId == null || startD == null || endD == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All schedule details (course, mentor, slot, start/end dates) must be provided to update schedule");
@@ -185,9 +212,13 @@ public class EnrollmentService implements EnrollmentServicePort {
             validateCapacity(slotId, mentorId, startD, endD);
 
             // Find or create schedule
-            MentorSchedule schedule = getOrCreateMentorSchedule(mentor, course, slot, startD, endD);
+            Batch batch = batchRepository.findById(batchId).orElse(null);
+            MentorSchedule schedule = getOrCreateMentorSchedule(mentor, course, slot, startD, endD, batch);
             enrollment.setMentorSchedule(schedule);
         }
+
+        Batch batch = batchRepository.findById(batchId).orElse(null);
+        enrollment.setBatch(batch);
 
         enrollment = enrollmentRepository.save(enrollment);
         return mapToEnrollmentDto(enrollment);
@@ -220,7 +251,8 @@ public class EnrollmentService implements EnrollmentServicePort {
                     SlotDto.fromEntity(enrollment.getMentorSchedule().getSlot()),
                     MentorDto.fromEntity(enrollment.getMentorSchedule().getMentor()),
                     enrollment.getMentorSchedule().getStartDate(),
-                    enrollment.getMentorSchedule().getEndDate()
+                    enrollment.getMentorSchedule().getEndDate(),
+                    enrollment.getMentorSchedule().getBatchId()
             );
         }
 
@@ -245,17 +277,18 @@ public class EnrollmentService implements EnrollmentServicePort {
                 pendingAmount,
                 payments,
                 certUrl,
+                enrollment.getBatchId(),
                 enrollment.getCreatedAt()
         );
     }
 
     private void validateCapacity(UUID slotId, UUID mentorId, LocalDate startD, LocalDate endD) {
-        int limitTotal = systemSettingRepository.findById("max_students_total")
+        int limitTotal = systemSettingRepository.findById("max_student_per_slot_all_mentor_all_course")
                 .map(s -> Integer.parseInt(s.getValue()))
-                .orElse(50);
-        int limitMentor = systemSettingRepository.findById("max_students_per_mentor")
+                .orElse(40);
+        int limitMentor = systemSettingRepository.findById("max_student_per_slot_per_mentor")
                 .map(s -> Integer.parseInt(s.getValue()))
-                .orElse(30);
+                .orElse(12);
 
         // 1. Total slot capacity check
         List<Enrollment> totalOverlaps = enrollmentRepository.findOverlappingEnrollmentsInSlot(slotId, startD, endD);
@@ -312,18 +345,19 @@ public class EnrollmentService implements EnrollmentServicePort {
         return maxConcurrent;
     }
 
-    private MentorSchedule getOrCreateMentorSchedule(Mentor mentor, Course course, Slot slot, LocalDate startD, LocalDate endD) {
+    private MentorSchedule getOrCreateMentorSchedule(Mentor mentor, Course course, Slot slot, LocalDate startD, LocalDate endD, Batch batch) {
         List<MentorSchedule> schedules = mentorScheduleRepository.findOverlappingSchedules(mentor.getId(), slot.getId(), startD, endD);
         for (MentorSchedule ms : schedules) {
             if (ms.getCourse().getId().equals(course.getId())
                     && ms.getStartDate().equals(startD)
-                    && ms.getEndDate().equals(endD)) {
+                    && ms.getEndDate().equals(endD)
+                    && java.util.Objects.equals(ms.getBatchId(), batch != null ? batch.getId() : null)) {
                 return ms;
             }
         }
         if (!schedules.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Mentor is already scheduled in this slot during the overlapping dates: " + schedules.get(0).getStartDate() + " to " + schedules.get(0).getEndDate());
+                    "Mentor is already scheduled in this slot during the overlapping dates: " + schedules.get(0).getStartDate() + " to " + schedules.get(0).getEndDate() + " for batch " + schedules.get(0).getBatchId());
         }
         MentorSchedule schedule = MentorSchedule.builder()
                 .mentor(mentor)
@@ -331,7 +365,112 @@ public class EnrollmentService implements EnrollmentServicePort {
                 .slot(slot)
                 .startDate(startD)
                 .endDate(endD)
+                .batch(batch)
                 .build();
         return mentorScheduleRepository.save(schedule);
+    }
+
+    @Transactional
+    public List<EnrollmentDto> bulkAssign(cc.genlab.genlablaunchpadlmsapi.model.dto.request.BulkAssignRequest request) {
+        if (request.getStudentIds() == null || request.getStudentIds().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Student IDs are required");
+        }
+        if (request.getCourseId() == null || request.getMentorId() == null || request.getSlotId() == null || request.getBatchId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Course, mentor, slot, and batch IDs are required");
+        }
+
+        Course course = courseRepository.findById(request.getCourseId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found"));
+        Mentor mentor = mentorRepository.findById(request.getMentorId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mentor not found"));
+        Slot slot = slotRepository.findById(request.getSlotId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Slot not found"));
+        Batch batch = batchRepository.findById(request.getBatchId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Batch not found"));
+
+        boolean mentorTeachesCourse = course.getMentors().stream()
+                .anyMatch(m -> m.getId().equals(mentor.getId()));
+        if (!mentorTeachesCourse) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mentor is not assigned to teach this course");
+        }
+
+        LocalDate startDate = batch.getStartDate();
+        int duration = course.getDurationInDays() != null ? course.getDurationInDays() : 90;
+        LocalDate rawEndDate = startDate.plusDays(duration);
+        LocalDate snappedEndDate = rawEndDate;
+
+        if (startDate.getDayOfMonth() == 1) {
+            snappedEndDate = rawEndDate.withDayOfMonth(rawEndDate.lengthOfMonth());
+        } else if (startDate.getDayOfMonth() == 15) {
+            if (rawEndDate.getDayOfMonth() <= 15) {
+                snappedEndDate = rawEndDate.withDayOfMonth(15);
+            } else {
+                snappedEndDate = rawEndDate.plusMonths(1).withDayOfMonth(15);
+            }
+        }
+
+        int numStudents = request.getStudentIds().size();
+        validateCapacityForCount(slot.getId(), mentor.getId(), startDate, snappedEndDate, numStudents);
+
+        MentorSchedule schedule = getOrCreateMentorSchedule(mentor, course, slot, startDate, snappedEndDate, batch);
+
+        List<Enrollment> updatedEnrollments = new java.util.ArrayList<>();
+
+        for (UUID studentId : request.getStudentIds()) {
+            Student student = studentRepository.findById(studentId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found: " + studentId));
+
+            Enrollment enrollment = enrollmentRepository.findPendingEnrollmentForStudentAndCourse(studentId, course.getId())
+                    .orElse(null);
+
+            if (enrollment == null) {
+                enrollment = enrollmentRepository.findAllPendingEnrollmentsForStudent(studentId).stream()
+                        .findFirst()
+                        .orElse(null);
+            }
+
+            if (enrollment == null) {
+                enrollment = Enrollment.builder()
+                        .student(student)
+                        .status("active")
+                        .totalAmount(course.getPrice())
+                        .build();
+            }
+
+            enrollment.setMentorSchedule(schedule);
+            enrollment.setBatch(batch);
+            enrollment.setStatus("active");
+
+            updatedEnrollments.add(enrollmentRepository.save(enrollment));
+        }
+
+        return updatedEnrollments.stream()
+                .map(this::mapToEnrollmentDto)
+                .toList();
+    }
+
+    private void validateCapacityForCount(UUID slotId, UUID mentorId, LocalDate startD, LocalDate endD, int countToAdd) {
+        int limitTotal = systemSettingRepository.findById("max_student_per_slot_all_mentor_all_course")
+                .map(s -> Integer.parseInt(s.getValue()))
+                .orElse(40);
+        int limitMentor = systemSettingRepository.findById("max_student_per_slot_per_mentor")
+                .map(s -> Integer.parseInt(s.getValue()))
+                .orElse(12);
+
+        List<Enrollment> totalOverlaps = enrollmentRepository.findOverlappingEnrollmentsInSlot(slotId, startD, endD);
+        int maxTotal = computeMaxConcurrentEnrollments(totalOverlaps, startD, endD);
+        if (maxTotal + countToAdd > limitTotal) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Slot limit exceeded. Allowed: " + limitTotal + ", current peak + request: " + (maxTotal + countToAdd));
+        }
+
+        if (mentorId != null) {
+            List<Enrollment> mentorOverlaps = enrollmentRepository.findOverlappingEnrollmentsForMentorInSlot(mentorId, slotId, startD, endD);
+            int maxMentor = computeMaxConcurrentEnrollments(mentorOverlaps, startD, endD);
+            if (maxMentor + countToAdd > limitMentor) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Mentor capacity exceeded. Allowed: " + limitMentor + ", current peak + request: " + (maxMentor + countToAdd));
+            }
+        }
     }
 }

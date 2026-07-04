@@ -58,7 +58,9 @@ class AdminCourseControllerTest {
                 java.math.BigDecimal.valueOf(199.99),
                 List.of(),
                 List.of("Intro", "Advanced features"),
-                OffsetDateTime.now()
+                OffsetDateTime.now(),
+                true,
+                90
         );
     }
 
@@ -66,7 +68,8 @@ class AdminCourseControllerTest {
     @WithMockUser(username = "admin-user")
     void getAllCourses_asAdmin_shouldReturnList() throws Exception {
         when(roleService.getRoleForUser("admin-user")).thenReturn("admin");
-        when(courseService.getAllCourses()).thenReturn(List.of(courseDto));
+        when(courseService.getTotalCoursesCount()).thenReturn(1L);
+        when(courseService.getAllCourses(null, null, null, null)).thenReturn(List.of(courseDto));
 
         mockMvc.perform(get("/api/admin/courses")
                         .requestAttr("userId", "admin-user"))

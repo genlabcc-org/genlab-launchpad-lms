@@ -5,3 +5,5 @@ export * from './admin';
 export * from './student';
 export * from './mentor';
 export * from './shared';
+export * from './slots';
+

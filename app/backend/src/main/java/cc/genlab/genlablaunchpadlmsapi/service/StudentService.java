@@ -39,6 +39,7 @@ public class StudentService implements StudentServicePort {
     private final SlotRepository slotRepository;
     private final MentorScheduleRepository mentorScheduleRepository;
     private final SystemSettingRepository systemSettingRepository;
+    private final BatchRepository batchRepository;
 
     // ── Read operations ──────────────────────────────────────────────────
 
@@ -159,7 +160,6 @@ public class StudentService implements StudentServicePort {
         UUID slotId = request.getTimeSlotId();
         LocalDate startD = request.getStartDate();
         LocalDate endD = request.getEndDate();
-        Boolean terms = request.getTermsAccepted() != null ? request.getTermsAccepted() : false;
 
         Course course = null;
         if (courseId != null) {
@@ -174,7 +174,9 @@ public class StudentService implements StudentServicePort {
         }
 
         if (mentor != null && course != null) {
-            if (!course.getMentors().contains(mentor)) {
+            boolean mentorTeachesCourse = course.getMentors().stream()
+                    .anyMatch(m -> m.getId().equals(mentorId));
+            if (!mentorTeachesCourse) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Selected mentor is not assigned to teach the selected course");
             }
@@ -191,10 +193,19 @@ public class StudentService implements StudentServicePort {
             validateCapacity(slotId, mentorId, startD, endD);
         }
 
+        String batchId = request.getBatchId();
+        if (batchId == null || batchId.isBlank()) {
+            batchId = autoDetectBatchId(LocalDate.now());
+        } else {
+            batchId = batchId.trim().toLowerCase().replace(" ", "_");
+        }
+
+        Batch batch = batchRepository.findById(batchId).orElse(null);
+
         // Find or create MentorSchedule
         MentorSchedule schedule = null;
         if (mentor != null && course != null && slot != null && startD != null && endD != null) {
-            schedule = getOrCreateMentorSchedule(mentor, course, slot, startD, endD);
+            schedule = getOrCreateMentorSchedule(mentor, course, slot, startD, endD, batch);
         }
 
         Student student = Student.builder()
@@ -203,7 +214,6 @@ public class StudentService implements StudentServicePort {
                 .email(email)
                 .phone(phone)
                 .gender(Gender.fromString(request.getGender()))
-                .personalMobile(request.getPersonalMobile())
                 .emergencyMobile(request.getEmergencyMobile())
                 .address(request.getAddress())
                 .addressProofKey(request.getAddressProofKey())
@@ -211,22 +221,20 @@ public class StudentService implements StudentServicePort {
                 .studentType(StudentType.fromString(request.getStudentType()))
                 .referralSource(request.getReferralSource())
                 .profilePhotoKey(request.getProfilePhotoKey())
-                .termsAccepted(terms)
+                .interestedCourseId(schedule != null ? null : (request.getInterestedCourseId() != null ? request.getInterestedCourseId() : courseId))
                 .build();
-        studentRepository.save(student);
+        studentRepository.saveAndFlush(student);
 
-        if (schedule != null) {
-            BigDecimal totalAmount = request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO;
-
-            Enrollment enrollment = Enrollment.builder()
-                    .student(student)
-                    .mentorSchedule(schedule)
-                    .paymentType(PaymentType.fromString(request.getPaymentType()))
-                    .status("active")
-                    .totalAmount(totalAmount)
-                    .build();
-            enrollmentRepository.save(enrollment);
-        }
+        BigDecimal totalAmount = request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO;
+        Enrollment enrollment = Enrollment.builder()
+                .student(student)
+                .mentorSchedule(schedule)
+                .paymentType(PaymentType.fromString(request.getPaymentType()))
+                .batch(batch)
+                .status(schedule != null ? "active" : "pending")
+                .totalAmount(totalAmount)
+                .build();
+        enrollmentRepository.save(enrollment);
 
         return CreateUserResponse.builder()
                 .userId(userId.toString())
@@ -281,9 +289,6 @@ public class StudentService implements StudentServicePort {
         if (request.getGender() != null) {
             student.setGender(Gender.fromString(request.getGender()));
         }
-        if (request.getPersonalMobile() != null) {
-            student.setPersonalMobile(request.getPersonalMobile());
-        }
         if (request.getEmergencyMobile() != null) {
             student.setEmergencyMobile(request.getEmergencyMobile());
         }
@@ -305,8 +310,8 @@ public class StudentService implements StudentServicePort {
         if (request.getProfilePhotoKey() != null) {
             student.setProfilePhotoKey(request.getProfilePhotoKey());
         }
-        if (request.getTermsAccepted() != null) {
-            student.setTermsAccepted(request.getTermsAccepted());
+        if (request.getInterestedCourseId() != null) {
+            student.setInterestedCourseId(request.getInterestedCourseId());
         }
 
         studentRepository.save(student);
@@ -379,8 +384,17 @@ public class StudentService implements StudentServicePort {
                 // Capacity validations
                 validateCapacity(slotId, mentorId, startD, endD);
 
+                String batchId = request.getBatchId();
+                if (batchId == null || batchId.isBlank()) {
+                    LocalDate onboardDate = student.getCreatedAt() != null ? student.getCreatedAt().toLocalDate() : LocalDate.now();
+                    batchId = autoDetectBatchId(onboardDate);
+                } else {
+                    batchId = batchId.trim().toLowerCase().replace(" ", "_");
+                }
+                Batch batch = batchRepository.findById(batchId).orElse(null);
+
                 // Find or create schedule
-                MentorSchedule schedule = getOrCreateMentorSchedule(mentor, course, slot, startD, endD);
+                MentorSchedule schedule = getOrCreateMentorSchedule(mentor, course, slot, startD, endD, batch);
 
                 BigDecimal totalAmount = request.getTotalAmount() != null ? request.getTotalAmount() : BigDecimal.ZERO;
                 String status = request.getEnrollmentStatus() != null ? request.getEnrollmentStatus() : "active";
@@ -388,10 +402,15 @@ public class StudentService implements StudentServicePort {
                         .student(student)
                         .mentorSchedule(schedule)
                         .paymentType(PaymentType.fromString(request.getPaymentType()))
+                        .batch(batch)
                         .status(status)
                         .totalAmount(totalAmount)
                         .build();
                 enrollmentRepository.save(enrollment);
+                if (schedule != null) {
+                    student.setInterestedCourseId(null);
+                    studentRepository.save(student);
+                }
             } else {
                 // Try to find ANY enrollment (even if inactive/completed) to update
                 Enrollment anyEnrollment = enrollmentRepository.findAll().stream()
@@ -448,6 +467,18 @@ public class StudentService implements StudentServicePort {
             }
         }
 
+        String batchId = request.getBatchId();
+        if (batchId == null || batchId.isBlank()) {
+            batchId = enrollment.getBatchId();
+        }
+        if (batchId == null || batchId.isBlank()) {
+            LocalDate onboardDate = enrollment.getStudent().getCreatedAt() != null ? enrollment.getStudent().getCreatedAt().toLocalDate() : LocalDate.now();
+            batchId = autoDetectBatchId(onboardDate);
+        } else {
+            batchId = batchId.trim().toLowerCase().replace(" ", "_");
+        }
+        Batch batch = batchRepository.findById(batchId).orElse(null);
+
         if (scheduleChange) {
             if (courseId == null || mentorId == null || slotId == null || startD == null || endD == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All schedule details (course, mentor, slot, start/end dates) must be provided to update schedule");
@@ -466,9 +497,11 @@ public class StudentService implements StudentServicePort {
             validateCapacity(slotId, mentorId, startD, endD);
 
             // Find or create schedule
-            MentorSchedule schedule = getOrCreateMentorSchedule(mentor, course, slot, startD, endD);
+            MentorSchedule schedule = getOrCreateMentorSchedule(mentor, course, slot, startD, endD, batch);
             enrollment.setMentorSchedule(schedule);
         }
+
+        enrollment.setBatch(batch);
 
         if (request.getPaymentType() != null) {
             enrollment.setPaymentType(PaymentType.fromString(request.getPaymentType()));
@@ -484,12 +517,12 @@ public class StudentService implements StudentServicePort {
     }
 
     private void validateCapacity(UUID slotId, UUID mentorId, LocalDate startD, LocalDate endD) {
-        int limitTotal = systemSettingRepository.findById("max_students_total")
+        int limitTotal = systemSettingRepository.findById("max_student_per_slot_all_mentor_all_course")
                 .map(s -> Integer.parseInt(s.getValue()))
-                .orElse(50);
-        int limitMentor = systemSettingRepository.findById("max_students_per_mentor")
+                .orElse(40);
+        int limitMentor = systemSettingRepository.findById("max_student_per_slot_per_mentor")
                 .map(s -> Integer.parseInt(s.getValue()))
-                .orElse(30);
+                .orElse(12);
 
         // 1. Total slot capacity check
         List<Enrollment> totalOverlaps = enrollmentRepository.findOverlappingEnrollmentsInSlot(slotId, startD, endD);
@@ -546,18 +579,19 @@ public class StudentService implements StudentServicePort {
         return maxConcurrent;
     }
 
-    private MentorSchedule getOrCreateMentorSchedule(Mentor mentor, Course course, Slot slot, LocalDate startD, LocalDate endD) {
+    private MentorSchedule getOrCreateMentorSchedule(Mentor mentor, Course course, Slot slot, LocalDate startD, LocalDate endD, Batch batch) {
         List<MentorSchedule> schedules = mentorScheduleRepository.findOverlappingSchedules(mentor.getId(), slot.getId(), startD, endD);
         for (MentorSchedule ms : schedules) {
             if (ms.getCourse().getId().equals(course.getId())
                     && ms.getStartDate().equals(startD)
-                    && ms.getEndDate().equals(endD)) {
+                    && ms.getEndDate().equals(endD)
+                    && java.util.Objects.equals(ms.getBatchId(), batch != null ? batch.getId() : null)) {
                 return ms;
             }
         }
         if (!schedules.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Mentor is already scheduled in this slot during the overlapping dates: " + schedules.get(0).getStartDate() + " to " + schedules.get(0).getEndDate());
+                    "Mentor is already scheduled in this slot during the overlapping dates: " + schedules.get(0).getStartDate() + " to " + schedules.get(0).getEndDate() + " for batch " + schedules.get(0).getBatchId());
         }
         MentorSchedule schedule = MentorSchedule.builder()
                 .mentor(mentor)
@@ -565,8 +599,20 @@ public class StudentService implements StudentServicePort {
                 .slot(slot)
                 .startDate(startD)
                 .endDate(endD)
+                .batch(batch)
                 .build();
         return mentorScheduleRepository.save(schedule);
+    }
+
+    private String autoDetectBatchId(LocalDate onboardDate) {
+        return batchRepository.findAll().stream()
+                .filter(b -> b.getCutoffDate() != null)
+                .filter(b -> !onboardDate.isAfter(b.getCutoffDate()))
+                .min(Comparator.comparing(Batch::getStartDate))
+                .map(Batch::getId)
+                .orElseGet(() -> {
+                    return onboardDate.isBefore(LocalDate.of(2026, 7, 15)) ? "2026_july_batch_1" : "2026_july_batch_2";
+                });
     }
 
     private StudentEnrollmentDto mapToStudentEnrollmentDto(Enrollment enrollment) {
@@ -588,7 +634,8 @@ public class StudentService implements StudentServicePort {
                     SlotDto.fromEntity(enrollment.getMentorSchedule().getSlot()),
                     MentorDto.fromEntity(enrollment.getMentorSchedule().getMentor()),
                     enrollment.getMentorSchedule().getStartDate(),
-                    enrollment.getMentorSchedule().getEndDate()
+                    enrollment.getMentorSchedule().getEndDate(),
+                    enrollment.getMentorSchedule().getBatchId()
             );
         }
 
@@ -613,6 +660,7 @@ public class StudentService implements StudentServicePort {
                 scheduleDto,
                 payments,
                 certUrl,
+                enrollment.getBatchId(),
                 enrollment.getCreatedAt()
         );
     }

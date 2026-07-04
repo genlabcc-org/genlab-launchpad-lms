@@ -33,6 +33,15 @@ public class SupabaseAuthService {
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(supabaseBody)
                 .retrieve()
+                .onStatus(status -> status.is4xxClientError(), clientResponse ->
+                        clientResponse.bodyToMono(Map.class)
+                                .map(body -> {
+                                    String msg = body.containsKey("msg") ? (String) body.get("msg")
+                                            : body.containsKey("message") ? (String) body.get("message")
+                                            : "Supabase rejected the request (status " + clientResponse.statusCode() + ")";
+                                    return new ResponseStatusException(HttpStatus.BAD_REQUEST, msg);
+                                })
+                )
                 .bodyToMono(Map.class)
                 .block();
 

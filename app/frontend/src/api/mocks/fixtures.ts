@@ -91,7 +91,6 @@ export const mockStudent: StudentDto = {
   pendingAmount: 0,
   profilePhotoKey: undefined,
   profilePhotoUrl: undefined,
-  termsAccepted: true,
   createdAt: '2026-07-01T12:00:00Z',
 };
 
@@ -114,6 +113,7 @@ export const mockStudentSchedule: StudentScheduleDto = {
   mentor: mockMentor,
   startDate: '2026-07-01',
   endDate: '2026-08-01',
+  batchId: 'JULY BATCH 1',
 };
 
 export const mockEnrollment: EnrollmentDto = {
@@ -126,6 +126,7 @@ export const mockEnrollment: EnrollmentDto = {
   pendingAmount: 0,
   payments: [mockPayment],
   certificateUrl: undefined,
+  batchId: 'JULY BATCH 1',
   createdAt: '2026-07-01T12:00:00Z',
 };
 
@@ -139,6 +140,7 @@ export const mockStudentEnrollment: StudentEnrollmentDto = {
   mentorSchedule: mockStudentSchedule,
   payments: [mockPayment],
   certificateUrl: null,
+  batchId: 'JULY BATCH 1',
   createdAt: '2026-07-01T12:00:00Z',
 };
 
@@ -149,6 +151,7 @@ export const mockMentorSchedule: MentorScheduleDto = {
   mentor: mockMentor,
   startDate: '2026-07-01',
   endDate: '2026-08-01',
+  batchId: 'JULY BATCH 1',
   students: [mockStudent],
 };
 

@@ -15,5 +15,6 @@ public record EnrollmentDto(
     BigDecimal pendingAmount,
     List<PaymentDto> payments,
     String certificateUrl,
+    String batchId,
     OffsetDateTime createdAt
 ) {}

@@ -32,9 +32,9 @@ terraform {
   }
 }
 
-provider "aws" {
-  region = var.aws_region
-}
+# provider "aws" {
+#   region = var.aws_region
+# }
 
 provider "supabase" {
   access_token = var.supabase_access_token
@@ -44,51 +44,50 @@ provider "resend" {
   api_key = var.smtp_pass
 }
 
-
-# Read persistent metadata application details from metadata state
-data "terraform_remote_state" "metadata" {
-  backend = "remote"
-
-  config = {
-    organization = "genlabcc"
-    workspaces = {
-      name = "launchpad-lms-metadata-prod"
-    }
-  }
+# Generate secure database password locally when AWS Secrets Manager is omitted
+resource "random_password" "db_password" {
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
-locals {
-  # Construct tag required for myApplication linking
-  application_tag = {
-    "awsApplication" = data.terraform_remote_state.metadata.outputs.application_arn
-  }
-}
+# # Read persistent metadata application details from metadata state
+# data "terraform_remote_state" "metadata" {
+#   backend = "remote"
+# 
+#   config = {
+#     organization = "genlabcc"
+#     workspaces = {
+#       name = "launchpad-lms-metadata-prod"
+#     }
+#   }
+# }
 
-module "s3_assets" {
-  source          = "../../modules/s3_assets"
-  environment     = "prod"
-  application_tag = local.application_tag
-  allowed_origins = ["https://${var.root_domain_name}", "https://www.${var.root_domain_name}"]
-}
+# module "s3_assets" {
+#   source          = "../../modules/s3_assets"
+#   environment     = "prod"
+#   application_tag = local.application_tag
+#   allowed_origins = ["https://${var.root_domain_name}", "https://www.${var.root_domain_name}"]
+# }
 
-module "secrets" {
-  source                    = "../../modules/secrets"
-  environment               = "prod"
-  application_tag           = local.application_tag
-  db_url                    = replace(module.database.db_url, "postgresql://", "jdbc:postgresql://")
-  supabase_url              = module.database.supabase_url
-  supabase_anon_key         = module.database.anon_key
-  supabase_service_role_key = module.database.service_role_key
-  s3_bucket_name            = module.s3_assets.bucket_name
-  s3_region                 = var.aws_region
-}
+# module "secrets" {
+#   source                    = "../../modules/secrets"
+#   environment               = "prod"
+#   application_tag           = local.application_tag
+#   db_url                    = replace(module.database.db_url, "postgresql://", "jdbc:postgresql://")
+#   supabase_url              = module.database.supabase_url
+#   supabase_anon_key         = module.database.anon_key
+#   supabase_service_role_key = module.database.service_role_key
+#   s3_bucket_name            = module.s3_assets.bucket_name
+#   s3_region                 = var.aws_region
+# }
 
 module "database" {
   source                   = "../../modules/database"
   supabase_organization_id = var.supabase_organization_id
   environment              = "prod"
   region                   = "ap-south-1"
-  db_password              = module.secrets.db_password
+  db_password              = random_password.db_password.result
   use_branching            = var.use_branching
   supabase_project_ref     = var.supabase_project_ref
 }
@@ -107,23 +106,23 @@ module "smtp" {
   magic_link_template_content = file("${path.module}/../../../supabase/templates/magic_link.html")
 }
 
+# module "backend" {
+#   source          = "../../modules/backend"
+#   environment     = "prod"
+#   secret_arn      = module.secrets.secret_arn
+#   ami_id          = var.ami_id
+#   instance_type   = "t4g.small"
+#   aws_region      = var.aws_region
+#   domain_name     = var.root_domain_name # Backend resolves to api.genlablaunchpad.cc
+#   dns_zone_name   = var.dns_zone_name
+#   application_tag = local.application_tag
+# }
 
-module "backend" {
-  source          = "../../modules/backend"
-  environment     = "prod"
-  secret_arn      = module.secrets.secret_arn
-  ami_id          = var.ami_id
-  instance_type   = "t4g.small"
-  aws_region      = var.aws_region
-  domain_name     = var.root_domain_name # Backend resolves to api.genlablaunchpad.cc
-  dns_zone_name   = var.dns_zone_name
-  application_tag = local.application_tag
-}
+# module "frontend" {
+#   source                  = "../../modules/frontend"
+#   domain_name             = "www.${var.root_domain_name}" # Frontend resolves to www.genlablaunchpad.cc
+#   additional_domain_names = [var.root_domain_name]
+#   dns_zone_name           = var.dns_zone_name
+#   application_tag         = local.application_tag
+# }
 
-module "frontend" {
-  source                  = "../../modules/frontend"
-  domain_name             = "www.${var.root_domain_name}" # Frontend resolves to www.genlablaunchpad.cc
-  additional_domain_names = [var.root_domain_name]
-  dns_zone_name           = var.dns_zone_name
-  application_tag         = local.application_tag
-}

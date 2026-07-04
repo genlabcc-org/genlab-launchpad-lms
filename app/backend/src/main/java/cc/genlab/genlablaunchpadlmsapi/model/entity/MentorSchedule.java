@@ -37,6 +37,14 @@ public class MentorSchedule {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "batch_id")
+    private Batch batch;
+
+    public String getBatchId() {
+        return batch != null ? batch.getId() : null;
+    }
+
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private OffsetDateTime createdAt = OffsetDateTime.now();

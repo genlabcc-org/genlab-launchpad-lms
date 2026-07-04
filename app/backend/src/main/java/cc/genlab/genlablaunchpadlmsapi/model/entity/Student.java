@@ -33,9 +33,6 @@ public class Student {
     @Column(name = "gender")
     private Gender gender;
 
-    @Column(name = "personal_mobile")
-    private String personalMobile;
-
     @Column(name = "emergency_mobile")
     private String emergencyMobile;
 
@@ -61,9 +58,8 @@ public class Student {
     @Column(name = "profile_photo_key")
     private String profilePhotoKey;
 
-    @Column(name = "terms_accepted")
-    @Builder.Default
-    private Boolean termsAccepted = false;
+    @Column(name = "interested_course_id")
+    private UUID interestedCourseId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default

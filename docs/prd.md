@@ -28,6 +28,11 @@
 - Admins can assign appropriate mentors to available student slots.
 - Mentors and students can view their respective calendar slots.
 - **Customizable Slot Durations**: Admins can customize slot timings (defaults: 10am-12pm, 2pm-4pm, 4pm-6pm) and dynamically add new slots to the scheduler.
+- **Schedule Inspector**: A daily schedule inspector view displaying active mentoring slots grouped by mentor and sorted chronologically as simple cards.
+  - Built with native HTML5 date input and styled with Hero UI and Tailwind CSS, completely bypassing third-party calendar libraries (like react-big-calendar).
+  - **Active Day Filtering**: Client-side filtering selects enrollments and schedules where `startDate <= selectedDate && endDate >= selectedDate`.
+  - **Data Flow**: Axios API Layer → Zustand/State → filtering, grouping, and chronological sorting → simple card rendering.
+
 
 ### 1.5. Payment Tracking
 - Audit panel for manually logging student course fees.
@@ -49,7 +54,7 @@ The dashboard UI follows a Zoho Invoice-styled structure: a dark left sidebar, t
 | **Items** | **Courses** *(labeled 'Cources')* | Course catalog definition, active curriculum modules, and student assignments. |
 | *Resource (blurred)* | **Mentors** | Directory of registered mentors and slot details. |
 | **Payments** | **Pending Payments** | Tracking outstanding manually logged student course fees and status updates. |
-| *slots* | **Slots** | Custom calendar/scheduler mapping students to available mentors. |
+| *slots* | **Slots** | Custom scheduler presets and daily schedule inspector view mapping students to active slots. Displays slots in simple cards. |
 
 ---
 
@@ -57,8 +62,8 @@ The dashboard UI follows a Zoho Invoice-styled structure: a dark left sidebar, t
 
 ### 3.1. Design Aesthetics & Theming
 - Centralized theme customization using **Hero UI** component library.
-- Initial state runs the **default original theme**.
-- Custom styling parameters (from `docs/genlab-design.json`) must be integrated into the central theme file but kept disabled (in wait) until explicit design approval is received.
+- **GenLab branding is always active by default.** The `.genlab-theme` CSS class is unconditionally applied at app startup — there is no user-facing toggle.
+- All custom styling parameters (colors, typography, borders, spacings) from `docs/genlab-design.json` are permanently active and must not be disabled or gated behind a flag.
 
 ### 3.2. Performance Constraints
 - Cached role lookups to minimize DB latency.

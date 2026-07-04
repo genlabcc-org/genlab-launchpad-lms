@@ -2,6 +2,8 @@ package cc.genlab.genlablaunchpadlmsapi.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -43,8 +45,16 @@ public class Course {
     @Builder.Default
     private List<Mentor> mentors = new ArrayList<>();
 
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private boolean isActive = true;
+
     @Column(name = "syllabus", columnDefinition = "jsonb")
-    @Convert(converter = cc.genlab.genlablaunchpadlmsapi.model.converter.SyllabusConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Builder.Default
     private List<String> syllabus = new ArrayList<>();
+
+    @Column(name = "duration_in_days", nullable = false)
+    @Builder.Default
+    private Integer durationInDays = 90;
 }

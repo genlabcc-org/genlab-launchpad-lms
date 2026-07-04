@@ -133,6 +133,7 @@ public class MentorService implements MentorServicePort {
                         MentorDto.fromEntity(ms.getMentor()),
                         ms.getStartDate(),
                         ms.getEndDate(),
+                        ms.getBatchId(),
                         scheduleStudentsMap.getOrDefault(ms.getId(), List.of())))
                 .toList();
     }

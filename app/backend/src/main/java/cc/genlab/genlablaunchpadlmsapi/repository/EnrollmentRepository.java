@@ -37,4 +37,13 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
     List<Enrollment> findByStudentIdAndStatus(UUID studentId, String status);
 
     List<Enrollment> findByStudentIdAndStatusNot(UUID studentId, String status);
+
+    @Query("SELECT e FROM Enrollment e WHERE e.student.id = :studentId AND e.status = 'pending'")
+    List<Enrollment> findAllPendingEnrollmentsForStudent(@Param("studentId") UUID studentId);
+
+    @Query("SELECT e FROM Enrollment e WHERE e.student.id = :studentId AND e.status = 'pending' AND (e.mentorSchedule IS NULL OR e.mentorSchedule.course.id = :courseId)")
+    java.util.Optional<Enrollment> findPendingEnrollmentForStudentAndCourse(@Param("studentId") UUID studentId, @Param("courseId") UUID courseId);
+
+    @Query("SELECT e FROM Enrollment e JOIN e.mentorSchedule ms WHERE ms.course.id = :courseId AND e.status = 'active'")
+    List<Enrollment> findActiveEnrollmentsByCourseId(@Param("courseId") UUID courseId);
 }

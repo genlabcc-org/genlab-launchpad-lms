@@ -11,5 +11,6 @@ public record MentorScheduleDto(
     MentorDto mentor,
     LocalDate startDate,
     LocalDate endDate,
+    String batchId,
     List<StudentDto> students
 ) {}

@@ -1,15 +1,15 @@
 name: Infrastructure & Application Deployment
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  #     - staging
-  #     - dev
-  #   paths:
-  #     - 'deployments/**'
-  #     - 'app/**'
-  #     - '.github/workflows/infra-deploy.yml'
+  push:
+    branches:
+      - main
+      - staging
+      - dev
+    paths:
+      - 'deployments/**'
+      - 'app/**'
+      - '.github/workflows/infra-deploy.yml'
   workflow_dispatch:
     inputs:
       action:
@@ -144,11 +144,11 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ap-south-1
+      # - name: Configure AWS Credentials (OIDC)
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+      #     aws-region: ap-south-1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -156,17 +156,17 @@ jobs:
           terraform_version: 1.5.0
           cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
 
-      - name: Terraform Init Metadata
-        if: needs.determine-env.outputs.action == 'apply'
-        run: |
-          cd deployments/terraform/metadata
-          terraform init
+      # - name: Terraform Init Metadata
+      #   if: needs.determine-env.outputs.action == 'apply'
+      #   run: |
+      #     cd deployments/terraform/metadata
+      #     terraform init
 
-      - name: Terraform Apply Metadata
-        if: needs.determine-env.outputs.action == 'apply'
-        run: |
-          cd deployments/terraform/metadata
-          terraform apply -var="environment=${{ needs.determine-env.outputs.env_name }}" -auto-approve
+      # - name: Terraform Apply Metadata
+      #   if: needs.determine-env.outputs.action == 'apply'
+      #   run: |
+      #     cd deployments/terraform/metadata
+      #     terraform apply -var="environment=${{ needs.determine-env.outputs.env_name }}" -auto-approve
 
       - name: Terraform Init
         run: |
@@ -185,18 +185,8 @@ jobs:
         run: |
           cd ${{ needs.determine-env.outputs.tf_dir }}
           terraform apply -auto-approve
-          IP=$(terraform output -raw backend_public_ip)
-          echo "instance_public_ip=$IP" >> $GITHUB_OUTPUT
           REF=$(terraform output -raw supabase_project_ref)
           echo "supabase_project_ref=$REF" >> $GITHUB_OUTPUT
-          KEY=$(terraform output -raw backend_private_key)
-          echo "backend_private_key<<EOF" >> $GITHUB_OUTPUT
-          echo "$KEY" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          BUCKET=$(terraform output -raw frontend_s3_bucket_name)
-          echo "frontend_s3_bucket_name=$BUCKET" >> $GITHUB_OUTPUT
-          DIST_ID=$(terraform output -raw cloudfront_distribution_id)
-          echo "cloudfront_distribution_id=$DIST_ID" >> $GITHUB_OUTPUT
 
       - name: Terraform Destroy (Teardown)
         if: needs.determine-env.outputs.action == 'destroy'
@@ -218,13 +208,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Configure AWS Credentials (OIDC)
-        if: needs.determine-env.outputs.action == 'apply'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ap-south-1
-
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
@@ -236,131 +219,130 @@ jobs:
         run: |
           cd deployments/supabase
 
-          # Fetch DB password from AWS Secrets Manager
-          AWS_SECRET_NAME="/config/genlab-launchpad-lms-api_${{ needs.determine-env.outputs.env_name }}"
-          DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "$AWS_SECRET_NAME" --query SecretString --output text | jq -r '."spring.datasource.password"')
+          # Fetch DB password from GitHub repository secrets
+          DB_PASSWORD="${{ secrets.SUPABASE_DB_PASSWORD }}"
 
           supabase link --project-ref "${{ needs.terraform.outputs.supabase_project_ref }}"
           supabase db push --password "$DB_PASSWORD"
 
-  build-backend:
-    needs: determine-env
-    if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_backend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+  # build-backend:
+  #   needs: determine-env
+  #   if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_backend == 'true'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v3
 
-      - name: Set up JDK 25
-        uses: actions/setup-java@v3
-        with:
-          java-version: "25"
-          distribution: "temurin"
-          cache: "maven"
+  #     - name: Set up JDK 25
+  #       uses: actions/setup-java@v3
+  #       with:
+  #         java-version: "25"
+  #         distribution: "temurin"
+  #         cache: "maven"
 
-      - name: Compile Backend JAR
-        run: |
-          cd app/backend
-          ./mvnw clean package -DskipTests
+  #     - name: Compile Backend JAR
+  #       run: |
+  #         cd app/backend
+  #         ./mvnw clean package -DskipTests
 
-      - name: Upload JAR Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: app-jar
-          path: app/backend/target/*.jar
+  #     - name: Upload JAR Artifact
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: app-jar
+  #         path: app/backend/target/*.jar
 
-  build-frontend:
-    needs: determine-env
-    if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_frontend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+  # build-frontend:
+  #   needs: determine-env
+  #   if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_frontend == 'true'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "24"
-          cache: "npm"
-          cache-dependency-path: app/frontend/package-lock.json
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: "24"
+  #         cache: "npm"
+  #         cache-dependency-path: app/frontend/package-lock.json
 
-      - name: Install Dependencies & Build
-        run: |
-          cd app/frontend
-          npm ci
-          npm run build
+  #     - name: Install Dependencies & Build
+  #       run: |
+  #         cd app/frontend
+  #         npm ci
+  #         npm run build
 
-      - name: Upload Frontend Artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: frontend-dist
-          path: app/frontend/dist
+  #     - name: Upload Frontend Artifact
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: frontend-dist
+  #         path: app/frontend/dist
 
-  ansible-deploy:
-    needs: [determine-env, terraform, build-backend]
-    if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_backend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+  # ansible-deploy:
+  #   needs: [determine-env, terraform, build-backend]
+  #   if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_backend == 'true'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v3
 
-      - name: Download JAR Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: app-jar
-          path: deployments/ansible
+  #     - name: Download JAR Artifact
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: app-jar
+  #         path: deployments/ansible
 
-      - name: Install Ansible
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ansible
+  #     - name: Install Ansible
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y ansible
 
-      - name: Setup SSH Directory
-        env:
-          SSH_KEY: ${{ needs.terraform.outputs.backend_private_key }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ needs.terraform.outputs.instance_public_ip }} >> ~/.ssh/known_hosts
+  #     - name: Setup SSH Directory
+  #       env:
+  #         SSH_KEY: ${{ needs.terraform.outputs.backend_private_key }}
+  #       run: |
+  #         mkdir -p ~/.ssh
+  #         echo "$SSH_KEY" > ~/.ssh/id_rsa
+  #         chmod 600 ~/.ssh/id_rsa
+  #         ssh-keyscan -H ${{ needs.terraform.outputs.instance_public_ip }} >> ~/.ssh/known_hosts
 
-      - name: Run Ansible Deploy Playbook
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: "False"
-          AnsibleIP: ${{ needs.terraform.outputs.instance_public_ip }}
-        run: |
-          cd deployments/ansible
-          # Dynamically map the JAR filename to variables
-          JAR_FILE=$(ls *.jar | head -n 1)
+  #     - name: Run Ansible Deploy Playbook
+  #       env:
+  #         ANSIBLE_HOST_KEY_CHECKING: "False"
+  #         AnsibleIP: ${{ needs.terraform.outputs.instance_public_ip }}
+  #       run: |
+  #         cd deployments/ansible
+  #         # Dynamically map the JAR filename to variables
+  #         JAR_FILE=$(ls *.jar | head -n 1)
 
-          # Run deployment playbook targeting the dynamic IP resolved by Terraform
-          ansible-playbook -i "$AnsibleIP," \
-            -u ubuntu \
-            --private-key ~/.ssh/id_rsa \
-            -e "app_local_src=$JAR_FILE spring_profile=${{ needs.determine-env.outputs.env_name }}" \
-            site.yml
+  #         # Run deployment playbook targeting the dynamic IP resolved by Terraform
+  #         ansible-playbook -i "$AnsibleIP," \
+  #           -u ubuntu \
+  #           --private-key ~/.ssh/id_rsa \
+  #           -e "app_local_src=$JAR_FILE spring_profile=${{ needs.determine-env.outputs.env_name }}" \
+  #           site.yml
 
-  deploy-frontend:
-    needs: [determine-env, terraform, build-frontend]
-    if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_frontend == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+  # deploy-frontend:
+  #   needs: [determine-env, terraform, build-frontend]
+  #   if: needs.determine-env.outputs.action == 'apply' && needs.determine-env.outputs.run_frontend == 'true'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout Repository
+  #       uses: actions/checkout@v3
 
-      - name: Configure AWS Credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ap-south-1
+  #     - name: Configure AWS Credentials (OIDC)
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+  #         aws-region: ap-south-1
 
-      - name: Download Frontend Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: frontend-dist
-          path: dist
+  #     - name: Download Frontend Artifact
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         name: frontend-dist
+  #         path: dist
 
-      - name: Deploy static assets to S3 and invalidate CloudFront
-        run: |
-          aws s3 sync dist/ s3://${{ needs.terraform.outputs.frontend_s3_bucket_name }}/ --delete
-          aws cloudfront create-invalidation --distribution-id ${{ needs.terraform.outputs.cloudfront_distribution_id }} --paths "/*"
+  #     - name: Deploy static assets to S3 and invalidate CloudFront
+  #       run: |
+  #         aws s3 sync dist/ s3://${{ needs.terraform.outputs.frontend_s3_bucket_name }}/ --delete
+  #         aws cloudfront create-invalidation --distribution-id ${{ needs.terraform.outputs.cloudfront_distribution_id }} --paths "/*"

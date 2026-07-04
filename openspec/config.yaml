@@ -52,7 +52,7 @@ context: |
       - Centralized Theme Configuration:
         - Theme Management: All color styles, themes, and design tokens MUST be managed centrally in a single file (e.g., in `tailwind.config.js` or a dedicated `theme.config.ts` exported to the Tailwind/Hero UI setup).
         - Restrictions: Avoid scattered CSS theme variables or inline hardcoded color styling across UI components to maintain strict design system compliance.
-        - Phased Rollout Workflow: Start with the default original theme active. The custom GenLab parameters (need-to-change colors, typography, borders, and spacings from docs/genlab-design.json) MUST be present in the central design system/theme configuration file but kept disabled or parameterized, to be toggled/applied only after explicit design approval.
+        - Branding: GenLab branding (colors, typography, borders, and spacings from docs/genlab-design.json) is the permanent default (`.genlab-theme`). Standard CRM themes (Zoho CRM `.theme-zoho-crm`, Odoo CRM `.theme-odoo-crm`, SAP Fiori CRM `.theme-sap-crm`) are defined in `app/frontend/src/index.css` following enterprise design token guidelines. All design tokens from genlab-design.json remain active at all times for the primary GenLab theme.
       - Typography: Clash Display for headers and body copy with custom letter spacing and font weights.
       - Colors Integration:
         - Primary/Accent: Acid Lime (#cfff00, #a1bf00, #bcf000) for CTAs, active states, and highlights.
@@ -70,6 +70,7 @@ context: |
       - Mentors (maps to 'Resource' menu item): Directory and profile management for registered mentors.
       - Pending Payments (maps to 'Payments' menu item): Auditing, tracking, and manual updating of outstanding student course fees.
       - Slots (maps to 'slots' menu item): Custom calendar/scheduler view displaying assigned and open slots, mapping students to their respective mentors. Supports customizable slot timings (such as 10am-12pm, 2pm-4pm, 4pm-6pm) and admin-driven creation of new slots.
+        - Schedule Inspector: The admin selects a day to inspect slot utilization. Active slots are grouped by mentor and sorted chronologically as simple cards using Hero UI and Tailwind CSS, completely bypassing third-party calendar libraries (like react-big-calendar).
   Architectural Guidelines & Design Principles:
     - Core Principles: Strict adherence to SOLID (high priority), KISS, and DRY principles across all development boundaries (backend codebase, frontend application, and database designs). Always follow these principles while writing any code.
     - Backend Architecture:
@@ -97,18 +98,16 @@ context: |
       - docs/lld.md: Low Level Design describing low-level structure (3-layer frontend, MVC backend), database schema performance details, and security policies.
     - Purpose: These files are primarily maintained for human developers to easily onboard and understand what the system represents.
   Infrastructure & CI/CD Deployment:
-    - Target Provider: Amazon Web Services (AWS) in the ap-south-1 (Mumbai) region.
+    - Primary Infrastructure (Mainstream Production): Amazon Web Services (AWS) in ap-south-1 (EC2 for backend, S3 + CloudFront for frontend, Secrets Manager for configuration storage, Ansible for host deployment).
+    - Temporary Testing & Cost-Optimization Mode: Vercel (Frontend) and Render (Backend Web Service) are used temporarily during the testing phase to reduce AWS cloud spending.
     - Cloud Infrastructure (Terraform 1.5.0):
-      - Provisioning: Managed via environment-specific Terraform directories (`deployments/terraform/environments/`).
-      - Backend Host: EC2 instance running Ubuntu.
-      - Frontend Host: S3 bucket integrated with a CloudFront CDN distribution for static assets delivery and cache invalidation. Parametric `enable_web_hosting` toggle controls routing mode: disabled uses bucket hosting (with `cdn.domain_url`) and enabled uses website hosting (with apex and `www.domain_url`).
-      - Configuration Storage: AWS Secrets Manager stores and resolves sensitive application environment configurations.
-    - Configuration Management (Ansible):
-      - App Deployment: Playbook (`deployments/ansible/site.yml`) manages Java runtime setup and installs/runs the backend service JAR on the target EC2 host.
+      - Provisioning: Managed via environment-specific Terraform directories (`deployments/terraform/environments/`). Non-Supabase AWS modules are temporarily commented out for the testing phase; Terraform active configuration provisions Supabase database instances, auth settings, and SMTP configurations.
     - Database Migrations:
-      - Execution: Managed via Supabase CLI and pushed to target projects during deploy cycles.
+      - Execution: Managed via Supabase CLI and GitHub Actions CI/CD pipeline using direct repository secret database passwords.
     - CI/CD Orchestration:
-      - Workflow: GitHub Actions (`.github/workflows/infra-deploy.yml`) orchestrates environment setup, AWS OIDC connection, Terraform provisioning/teardown, Supabase schema migration, Maven backend build (JDK 25), Node frontend compilation, Ansible host configuration, and CloudFront CDN invalidations.
+      - Workflow: GitHub Actions (`.github/workflows/infra-deploy.yml`) orchestrates environment setup, Supabase Terraform database provisioning, Supabase schema migration, and build compilation steps.
+
+
 
 
 rules:
@@ -116,6 +115,7 @@ rules:
     - Highlight strict adherence to SOLID (high priority), KISS, and DRY principles while writing any code.
     - Explicitly confirm that the frontend communicates with the database/Supabase exclusively through backend API proxy endpoints.
     - Specify component styling using Hero UI customized for both light and dark themes matching docs/genlab-design.json, but keep these custom theme changes parameterized and disabled (in wait) until explicit design approval is received to enable them.
+    - For the Slots/scheduler feature, confirm the active slots are displayed in simple cards on the daily inspector page without using react-big-calendar.
   specs:
     - Ensure frontend specifications map to the 3-layer architecture (API Layer with Axios, Data Layer with Zustand, View Layer with Hero UI).
     - Ensure backend specifications follow the Model-Repository-Service-Controller architecture pattern with DTO/Entity decoupling.
@@ -125,5 +125,7 @@ rules:
     - Ensure that any architectural or configuration changes made within the app/ and deployments/ directories propagate to update the project description and context in openspec/config.yaml.
     - Any changes made and confirmed in openspec/config.yaml must trigger a new OpenSpec proposal to implement and track the changes.
     - Always follow the SOLID (high priority), KISS, and DRY principles while writing any code.
+    - Define the data model for rendering daily slot cards and require an explicit filtering/mapping structure from enrollments/mentor schedules to these cards.
   tasks:
     - Organize task breakdown sequentially according to backend (Controller/Service/Repository) and frontend (API/Data/View) layers.
+    - Split Slots/scheduler tasks into: (1) backend slot CRUD endpoints verification, (2) frontend API / date filtering helpers, (3) updating SidebarNav route path and labels, (4) updating App.tsx routes, (5) implementing AdminScheduleInspectorDashboard daily inspector component with Hero UI and Tailwind.

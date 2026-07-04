@@ -43,7 +43,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["getSettings"];
         put: operations["updateSettings"];
         post?: never;
         delete?: never;
@@ -116,6 +116,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/batches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateBatch"];
+        post?: never;
+        delete: operations["deleteBatch"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/student/verify-otp": {
         parameters: {
             query?: never;
@@ -174,6 +190,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["mentorSendOtp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["logout"];
         delete?: never;
         options?: never;
         head?: never;
@@ -324,6 +356,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/enrollments/bulk-assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["bulkAssign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/courses": {
         parameters: {
             query?: never;
@@ -334,6 +382,22 @@ export interface paths {
         get: operations["getAllCourses"];
         put?: never;
         post: operations["createCourse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAllBatches"];
+        put?: never;
+        post: operations["createBatch"];
         delete?: never;
         options?: never;
         head?: never;
@@ -548,6 +612,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/overview/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCounts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/dashboard": {
         parameters: {
             query?: never;
@@ -556,6 +636,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["dashboard_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/courses/{id}/capacity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCourseCapacity"];
         put?: never;
         post?: never;
         delete?: never;
@@ -581,7 +677,6 @@ export interface components {
             studentType?: string;
             referralSource?: string;
             profilePhotoKey?: string;
-            termsAccepted?: boolean;
             /** Format: uuid */
             registeredCourseId?: string;
             /** Format: uuid */
@@ -595,6 +690,7 @@ export interface components {
             totalAmount?: number;
             paymentType?: string;
             enrollmentStatus?: string;
+            batchId?: string;
         };
         StudentDto: {
             /** Format: uuid */
@@ -618,6 +714,8 @@ export interface components {
             /** Format: uuid */
             registeredCourseId?: string;
             /** Format: uuid */
+            interestedCourseId?: string;
+            /** Format: uuid */
             assignedMentorId?: string;
             /** Format: uuid */
             timeSlotId?: string;
@@ -629,7 +727,6 @@ export interface components {
             pendingAmount?: number;
             profilePhotoKey?: string;
             profilePhotoUrl?: string;
-            termsAccepted?: boolean;
             /** Format: date-time */
             createdAt?: string;
         };
@@ -713,6 +810,7 @@ export interface components {
             paymentType?: string;
             totalAmount?: number;
             status?: string;
+            batchId?: string;
         };
         EnrollmentDto: {
             /** Format: uuid */
@@ -725,6 +823,7 @@ export interface components {
             pendingAmount?: number;
             payments?: components["schemas"]["PaymentDto"][];
             certificateUrl?: string;
+            batchId?: string;
             /** Format: date-time */
             createdAt?: string;
         };
@@ -737,6 +836,7 @@ export interface components {
             startDate?: string;
             /** Format: date */
             endDate?: string;
+            batchId?: string;
         };
         CourseRequest: {
             title?: string;
@@ -744,6 +844,7 @@ export interface components {
             price?: number;
             syllabus?: string[];
             mentorIds?: string[];
+            isActive?: boolean;
         };
         CourseDto: {
             /** Format: uuid */
@@ -753,6 +854,19 @@ export interface components {
             price?: number;
             mentors?: components["schemas"]["MentorDto"][];
             syllabus?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+            isActive?: boolean;
+            /** Format: int32 */
+            durationInDays?: number;
+        };
+        BatchDto: {
+            id?: string;
+            name?: string;
+            /** Format: date */
+            startDate?: string;
+            /** Format: date */
+            cutoffDate?: string;
             /** Format: date-time */
             createdAt?: string;
         };
@@ -796,7 +910,7 @@ export interface components {
             endDate?: string;
             totalAmount?: number;
             profilePhotoKey?: string;
-            termsAccepted?: boolean;
+            batchId?: string;
         };
         CreateUserResponse: {
             userId?: string;
@@ -818,6 +932,16 @@ export interface components {
             transactionReference?: string;
             notes?: string;
         };
+        BulkAssignRequest: {
+            studentIds?: string[];
+            /** Format: uuid */
+            courseId?: string;
+            /** Format: uuid */
+            mentorId?: string;
+            /** Format: uuid */
+            slotId?: string;
+            batchId?: string;
+        };
         StudentEnrollmentDto: {
             /** Format: uuid */
             id?: string;
@@ -829,6 +953,7 @@ export interface components {
             mentorSchedule?: components["schemas"]["StudentScheduleDto"];
             payments?: components["schemas"]["PaymentDto"][];
             certificateUrl?: string;
+            batchId?: string;
             /** Format: date-time */
             createdAt?: string;
         };
@@ -842,11 +967,40 @@ export interface components {
             startDate?: string;
             /** Format: date */
             endDate?: string;
+            batchId?: string;
             students?: components["schemas"]["StudentDto"][];
         };
         PresignedUrlResponse: {
             url?: string;
             key?: string;
+        };
+        WorkspaceOverviewDto: {
+            /** Format: int64 */
+            slotsCount?: number;
+            /** Format: int64 */
+            coursesCount?: number;
+            /** Format: int64 */
+            mentorsCount?: number;
+            /** Format: int64 */
+            batchesCount?: number;
+            /** Format: int64 */
+            studentsCount?: number;
+        };
+        Cell: {
+            /** Format: int32 */
+            currentEnrollments?: number;
+            /** Format: int32 */
+            maxCapacity?: number;
+            isFull?: boolean;
+        };
+        CourseCapacityDto: {
+            slots?: components["schemas"]["SlotDto"][];
+            mentors?: components["schemas"]["MentorDto"][];
+            matrix?: {
+                [key: string]: {
+                    [key: string]: components["schemas"]["Cell"];
+                };
+            };
         };
     };
     responses: never;
@@ -990,6 +1144,28 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: string;
+                    };
+                };
             };
         };
     };
@@ -1291,6 +1467,52 @@ export interface operations {
             };
         };
     };
+    updateBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BatchDto"];
+                };
+            };
+        };
+    };
+    deleteBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     studentVerifyOtp: {
         parameters: {
             query?: never;
@@ -1379,6 +1601,26 @@ export interface operations {
                 "application/json": components["schemas"]["EmailOtpRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MessageResponse"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -1707,9 +1949,38 @@ export interface operations {
             };
         };
     };
-    getAllCourses: {
+    bulkAssign: {
         parameters: {
             query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkAssignRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["EnrollmentDto"][];
+                };
+            };
+        };
+    };
+    getAllCourses: {
+        parameters: {
+            query?: {
+                page?: number;
+                size?: number;
+                sortBy?: string;
+                sortOrder?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1747,6 +2018,50 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["CourseDto"];
+                };
+            };
+        };
+    };
+    getAllBatches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BatchDto"][];
+                };
+            };
+        };
+    };
+    createBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchDto"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BatchDto"];
                 };
             };
         };
@@ -2024,6 +2339,26 @@ export interface operations {
             };
         };
     };
+    getCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["WorkspaceOverviewDto"];
+                };
+            };
+        };
+    };
     dashboard_2: {
         parameters: {
             query?: never;
@@ -2040,6 +2375,31 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MessageResponse"];
+                };
+            };
+        };
+    };
+    getCourseCapacity: {
+        parameters: {
+            query: {
+                startDate: string;
+                endDate: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CourseCapacityDto"];
                 };
             };
         };

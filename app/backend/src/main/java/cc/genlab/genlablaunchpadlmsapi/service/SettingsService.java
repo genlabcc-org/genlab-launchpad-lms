@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Manages system-level admin settings (key-value pairs).
@@ -20,6 +21,15 @@ public class SettingsService implements SettingsServicePort {
 
     private final SystemSettingRepository systemSettingRepository;
 
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, String> getSettings() {
+        return systemSettingRepository.findAll()
+                .stream()
+                .collect(Collectors.toMap(SystemSetting::getKey, SystemSetting::getValue));
+    }
+
+    @Override
     @Transactional
     public void updateSettings(Map<String, String> settings) {
         for (Map.Entry<String, String> entry : settings.entrySet()) {

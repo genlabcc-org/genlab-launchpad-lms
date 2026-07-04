@@ -17,6 +17,10 @@ import type {
   StudentDto,
   UpdateStudentRequest,
   PresignedUrlResponse,
+  BatchDto,
+  WorkspaceOverviewDto,
+  CourseCapacityDto,
+  MentorScheduleDto,
 } from './types';
 
 export const adminApi = {
@@ -84,9 +88,14 @@ export const adminApi = {
     return apiClient.get(`/api/admin/mentors/${id}`).then((res) => res.data);
   },
 
+  getMentorSlots(id: string): Promise<MentorScheduleDto[]> {
+    return apiClient.get(`/api/admin/mentors/${id}/slots`).then((res) => res.data);
+  },
+
   createMentor(request: CreateUserRequest): Promise<CreateUserResponse> {
     return apiClient.post('/api/admin/mentors', request).then((res) => res.data);
   },
+
 
   updateMentor(id: string, request: UpdateMentorRequest): Promise<MentorDto> {
     return apiClient.put(`/api/admin/mentors/${id}`, request).then((res) => res.data);
@@ -175,6 +184,38 @@ export const adminApi = {
 
   getAddressProofUploadUrl(contentType: string = 'image/jpeg'): Promise<PresignedUrlResponse> {
     return apiClient.get('/api/assets/student/address-proof/presign-upload', { params: { contentType } }).then((res) => res.data);
+  },
+
+  // ─── Capacity ────────────────────────────────────────────────
+  getCourseCapacity(id: string, startDate: string, endDate: string): Promise<CourseCapacityDto> {
+    return apiClient.get(`/api/admin/courses/${id}/capacity`, { params: { startDate, endDate } }).then((res) => res.data);
+  },
+
+  // ─── Bulk Assign ─────────────────────────────────────────────
+  bulkAssignEnrollments(request: { studentIds: string[]; courseId: string; mentorId: string; slotId: string; batchId: string }): Promise<EnrollmentDto[]> {
+    return apiClient.post('/api/admin/enrollments/bulk-assign', request).then((res) => res.data);
+  },
+
+  // ─── Workspace Overview ──────────────────────────────────────
+  getOverviewCounts(): Promise<WorkspaceOverviewDto> {
+    return apiClient.get('/api/admin/overview/counts').then((res) => res.data);
+  },
+
+  // ─── Batches ─────────────────────────────────────────────────
+  getAllBatches(): Promise<BatchDto[]> {
+    return apiClient.get('/api/admin/batches').then((res) => res.data);
+  },
+
+  createBatch(request: Omit<BatchDto, 'createdAt'>): Promise<BatchDto> {
+    return apiClient.post('/api/admin/batches', request).then((res) => res.data);
+  },
+
+  updateBatch(id: string, request: Omit<BatchDto, 'id' | 'createdAt'>): Promise<BatchDto> {
+    return apiClient.put(`/api/admin/batches/${id}`, request).then((res) => res.data);
+  },
+
+  deleteBatch(id: string): Promise<void> {
+    return apiClient.delete(`/api/admin/batches/${id}`).then((res) => res.data);
   },
 };
 export default adminApi;

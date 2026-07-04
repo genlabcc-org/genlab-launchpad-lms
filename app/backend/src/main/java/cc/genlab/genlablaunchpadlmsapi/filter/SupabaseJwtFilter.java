@@ -33,6 +33,16 @@ public class SupabaseJwtFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        return path.startsWith("/auth/") || 
+               path.equals("/health") || 
+               path.equals("/error") || 
+               path.startsWith("/v3/api-docs") || 
+               path.startsWith("/swagger-ui");
+    }
+
+    @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain chain)

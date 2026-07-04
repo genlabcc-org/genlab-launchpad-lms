@@ -20,4 +20,5 @@ public class EnrollmentRequest {
     private String paymentType;
     private BigDecimal totalAmount;
     private String status;
+    private String batchId;
 }

@@ -15,7 +15,6 @@ public class CreateUserRequest {
     private String email;
     private String phone;
     private String gender;
-    private String personalMobile;
     private String emergencyMobile;
     private String address;
     private String addressProofKey;
@@ -30,5 +29,6 @@ public class CreateUserRequest {
     private LocalDate endDate;
     private java.math.BigDecimal totalAmount;
     private String profilePhotoKey;
-    private Boolean termsAccepted;
+    private String batchId;
+    private UUID interestedCourseId;
 }

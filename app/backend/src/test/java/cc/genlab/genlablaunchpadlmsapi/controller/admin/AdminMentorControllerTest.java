@@ -199,4 +199,18 @@ class AdminMentorControllerTest {
                         .with(csrf()))
                 .andExpect(status().isNoContent());
     }
+
+    @Test
+    @WithMockUser(username = "admin-user")
+    void getMentorSchedules_asAdmin_shouldReturnSchedules() throws Exception {
+        when(roleService.getRoleForUser("admin-user")).thenReturn("admin");
+        when(mentorService.getMentorSchedules(eq(mentorId.toString()), any(), any(), any()))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/admin/mentors/" + mentorId + "/slots")
+                        .requestAttr("userId", "admin-user"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
 }
+

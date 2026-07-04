@@ -2,14 +2,17 @@ package cc.genlab.genlablaunchpadlmsapi.controller.admin;
 
 import cc.genlab.genlablaunchpadlmsapi.annotation.RequiresRole;
 import cc.genlab.genlablaunchpadlmsapi.model.dto.MentorDto;
+import cc.genlab.genlablaunchpadlmsapi.model.dto.MentorScheduleDto;
 import cc.genlab.genlablaunchpadlmsapi.model.dto.request.CreateUserRequest;
 import cc.genlab.genlablaunchpadlmsapi.model.dto.request.UpdateMentorRequest;
 import cc.genlab.genlablaunchpadlmsapi.model.dto.response.CreateUserResponse;
 import cc.genlab.genlablaunchpadlmsapi.service.port.MentorServicePort;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,6 +38,15 @@ public class AdminMentorController {
         return mentorService.getMentorProfile(id.toString());
     }
 
+    @GetMapping("/{id}/slots")
+    public List<MentorScheduleDto> getMentorSchedules(
+            @PathVariable UUID id,
+            @RequestParam(value = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(value = "startDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(value = "endDate", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return mentorService.getMentorSchedules(id.toString(), date, startDate, endDate);
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CreateUserResponse createMentor(@RequestBody CreateUserRequest request) {
@@ -52,3 +64,4 @@ public class AdminMentorController {
         mentorService.deleteMentor(id);
     }
 }
+

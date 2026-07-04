@@ -15,5 +15,6 @@ public record StudentEnrollmentDto(
     StudentScheduleDto mentorSchedule,
     List<PaymentDto> payments,
     String certificateUrl,
+    String batchId,
     OffsetDateTime createdAt
 ) {}

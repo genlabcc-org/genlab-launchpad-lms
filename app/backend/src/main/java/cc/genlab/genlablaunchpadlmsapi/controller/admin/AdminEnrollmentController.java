@@ -51,4 +51,9 @@ public class AdminEnrollmentController {
     public void deleteEnrollment(@PathVariable UUID id) {
         enrollmentService.deleteEnrollment(id);
     }
+
+    @PostMapping("/bulk-assign")
+    public List<EnrollmentDto> bulkAssign(@RequestBody cc.genlab.genlablaunchpadlmsapi.model.dto.request.BulkAssignRequest request) {
+        return enrollmentService.bulkAssign(request);
+    }
 }

@@ -17,7 +17,6 @@ public record StudentDto(
     String email,
     String phone,
     Gender gender,
-    String personalMobile,
     String emergencyMobile,
     String address,
     String addressProofKey,
@@ -27,6 +26,7 @@ public record StudentDto(
     String referralSource,
     PaymentType paymentType,
     UUID registeredCourseId,
+    UUID interestedCourseId,
     UUID assignedMentorId,
     UUID timeSlotId,
     LocalDate startDate,
@@ -35,7 +35,6 @@ public record StudentDto(
     BigDecimal pendingAmount,
     String profilePhotoKey,
     String profilePhotoUrl,
-    Boolean termsAccepted,
     OffsetDateTime createdAt
 ) {
     public static StudentDto fromEntity(Student student, String profilePhotoUrl, String addressProofUrl) {
@@ -47,13 +46,19 @@ public record StudentDto(
                         .orElse(null))
                 : null;
 
+        UUID courseId = null;
+        if (latestEnrollment != null && latestEnrollment.getMentorSchedule() != null && latestEnrollment.getMentorSchedule().getCourse() != null) {
+            courseId = latestEnrollment.getMentorSchedule().getCourse().getId();
+        } else {
+            courseId = student.getInterestedCourseId();
+        }
+
         return new StudentDto(
             student.getId(),
             student.getName(),
             student.getEmail(),
             student.getPhone(),
             student.getGender(),
-            student.getPersonalMobile(),
             student.getEmergencyMobile(),
             student.getAddress(),
             student.getAddressProofKey(),
@@ -62,7 +67,8 @@ public record StudentDto(
             student.getStudentType(),
             student.getReferralSource(),
             latestEnrollment != null ? latestEnrollment.getPaymentType() : null,
-            latestEnrollment != null && latestEnrollment.getMentorSchedule() != null && latestEnrollment.getMentorSchedule().getCourse() != null ? latestEnrollment.getMentorSchedule().getCourse().getId() : null,
+            courseId,
+            student.getInterestedCourseId(),
             latestEnrollment != null && latestEnrollment.getMentorSchedule() != null && latestEnrollment.getMentorSchedule().getMentor() != null ? latestEnrollment.getMentorSchedule().getMentor().getId() : null,
             latestEnrollment != null && latestEnrollment.getMentorSchedule() != null && latestEnrollment.getMentorSchedule().getSlot() != null ? latestEnrollment.getMentorSchedule().getSlot().getId() : null,
             latestEnrollment != null && latestEnrollment.getMentorSchedule() != null ? latestEnrollment.getMentorSchedule().getStartDate() : null,
@@ -71,7 +77,6 @@ public record StudentDto(
             latestEnrollment != null ? latestEnrollment.getPendingAmount() : java.math.BigDecimal.ZERO,
             student.getProfilePhotoKey(),
             profilePhotoUrl,
-            student.getTermsAccepted(),
             student.getCreatedAt()
         );
     }

@@ -5,10 +5,23 @@ The frontend code structure located under `app/frontend/` is divided into three 
 
 ```
 src/
-├── api/             # API Layer (Axios client config, endpoints, API routes definitions)
-├── data/            # Data Layer (Zustand stores, state actions, selectors, local caching)
-└── view/            # View Layer (Hero UI components, forms, layouts, pages, styles)
-```
+├── api/             # API Layer (Axios client config, raw REST endpoints)
+├── services/        # Service Layer (Domain logic, Strategy Pattern for role resolution)
+├── data/            # Data Layer (Static data, Zustand stores, state actions)
+├── hooks/           # State & Business Hooks Layer (Custom React hooks for UI state)
+└── components/      # View Layer (Hero UI presentational components, forms, layouts)
+
+### 1.1 Auth & Login Module Layering
+- **API & Service Layer (`src/services/authService.ts`)**: Implements a Strategy Pattern (`RoleAuthStrategy`) for `admin`, `mentor`, and `student` role authentication, phone number formatting (`+91...`), and API delegation to `authApi`.
+- **Data & State Layer (`src/hooks/useLogin.ts`, `src/data/countries.ts`)**: `useLogin` custom hook manages all login UI state, step transitions (request/verify OTP), role detection, error handling, and `useAuthStore` session sync. `countries.ts` provides reusable country code configuration.
+- **View Layer (`src/components/Login.tsx`, `src/components/OtpBoxes.tsx`, `src/components/CountryDropdown.tsx`)**: Modular, pure presentational UI components rendering inputs, dropdowns, buttons, and status alerts.
+
+### 1.2 React Router Navigation & Route Guarding
+- **Framework**: `react-router-dom` with `<BrowserRouter>` in `main.tsx`.
+- **Public-Only Route (`/login`)**: Wrapped in `PublicOnlyRoute`. If authenticated, automatically redirects to `/${userRole}/dashboard`.
+- **Protected Role Routes**: `/admin/dashboard`, `/mentor/dashboard`, and `/student/dashboard` protected by `ProtectedRoute`. Unauthenticated users are redirected to `/login`; cross-role attempts redirect users to their assigned role dashboard.
+- **Role Dashboard Views**: Distinct presentational components (`AdminDashboard.tsx`, `MentorDashboard.tsx`, `StudentDashboard.tsx`) rendered inside `DashboardContainer.tsx`.
+- **404 Catch-All (`*`)**: Hero UI styled `NotFound.tsx` page with smart navigation back to active role dashboard or login.
 
 ---
 

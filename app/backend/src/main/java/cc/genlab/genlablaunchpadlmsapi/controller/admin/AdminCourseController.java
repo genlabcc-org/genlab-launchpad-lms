@@ -6,6 +6,7 @@ import cc.genlab.genlablaunchpadlmsapi.model.dto.request.CourseRequest;
 import cc.genlab.genlablaunchpadlmsapi.service.port.CourseServicePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,8 +21,19 @@ public class AdminCourseController {
     private final CourseServicePort courseService;
 
     @GetMapping
-    public List<CourseDto> getAllCourses() {
-        return courseService.getAllCourses();
+    public ResponseEntity<List<CourseDto>> getAllCourses(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortOrder) {
+        
+        long totalCount = courseService.getTotalCoursesCount();
+        List<CourseDto> courses = courseService.getAllCourses(page, size, sortBy, sortOrder);
+        
+        return ResponseEntity.ok()
+                .header("Access-Control-Expose-Headers", "X-Total-Count")
+                .header("X-Total-Count", String.valueOf(totalCount))
+                .body(courses);
     }
 
     @GetMapping("/{id}")
@@ -44,5 +56,13 @@ public class AdminCourseController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteCourse(@PathVariable UUID id) {
         courseService.deleteCourse(id);
+    }
+
+    @GetMapping("/{id}/capacity")
+    public cc.genlab.genlablaunchpadlmsapi.model.dto.CourseCapacityDto getCourseCapacity(
+            @PathVariable UUID id,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
+        return courseService.getCourseCapacity(id, startDate, endDate);
     }
 }

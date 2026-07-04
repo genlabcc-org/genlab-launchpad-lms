@@ -33,6 +33,8 @@ graph TD
 ### 3.1. Frontend Application
 - **Framework**: React 19 + Vite 8 + TypeScript 6.0.
 - **Component Library**: Hero UI (formerly NextUI) configured with custom Tailwind CSS plugins.
+- **Schedule Inspector**: A customized page for daily scheduling checks displaying slots as simple cards, grouped by mentor and sorted chronologically. Custom Tailwind CSS and Hero UI elements are used instead of `react-big-calendar`.
+- **Date Filter Adapter**: A dedicated mapping utility handles filtering active schedules client-side, matching them to the selected date by comparing `startDate` and `endDate`.
 - **Global State**: Zustand stores representing domain states (students, courses, slots, payments).
 - **HTTP Client**: Axios configured with custom middleware for token extraction and proxy routing.
 

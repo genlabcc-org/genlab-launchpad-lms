@@ -22,4 +22,6 @@ public interface EnrollmentServicePort {
     EnrollmentDto updateEnrollment(UUID id, EnrollmentRequest request);
 
     void deleteEnrollment(UUID id);
+
+    List<EnrollmentDto> bulkAssign(cc.genlab.genlablaunchpadlmsapi.model.dto.request.BulkAssignRequest request);
 }

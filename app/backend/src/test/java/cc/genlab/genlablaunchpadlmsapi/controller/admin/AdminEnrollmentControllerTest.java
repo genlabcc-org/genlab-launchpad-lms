@@ -62,6 +62,7 @@ class AdminEnrollmentControllerTest {
                 java.math.BigDecimal.valueOf(199.99),
                 List.of(),
                 null,
+                "JULY BATCH 1",
                 OffsetDateTime.now()
         );
     }

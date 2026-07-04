@@ -34,6 +34,14 @@ public class Enrollment {
     @Convert(converter = PaymentTypeConverter.class)
     private PaymentType paymentType;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "batch_id")
+    private Batch batch;
+
+    public String getBatchId() {
+        return batch != null ? batch.getId() : null;
+    }
+
     @Column(name = "status", nullable = false)
     @Builder.Default
     private String status = "active";

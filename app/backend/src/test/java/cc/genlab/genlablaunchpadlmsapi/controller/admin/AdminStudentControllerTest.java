@@ -63,7 +63,6 @@ class AdminStudentControllerTest {
                 "test@example.com",
                 "+1234567890",
                 Gender.MALE,
-                "+1234567890",
                 "+0987654321",
                 "123 Main St",
                 "address_proof_key",
@@ -71,17 +70,17 @@ class AdminStudentControllerTest {
                 "College of Engineering",
                 StudentType.STUDENT,
                 "direct",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                java.math.BigDecimal.ZERO,
-                java.math.BigDecimal.ZERO,
+                null, // paymentType
+                null, // registeredCourseId
+                null, // interestedCourseId (added)
+                null, // assignedMentorId
+                null, // timeSlotId
+                null, // startDate
+                null, // endDate
+                java.math.BigDecimal.ZERO, // totalAmount
+                java.math.BigDecimal.ZERO, // pendingAmount
                 "profile_photo_key",
                 "http://cdn/profile_photo",
-                true,
                 OffsetDateTime.now()
         );
     }
@@ -220,7 +219,7 @@ class AdminStudentControllerTest {
         String requestBody = """
                 {
                   "name": "Updated Name",
-                  "personalMobile": "+1122334455"
+                  "emergencyMobile": "+1122334455"
                 }
                 """;
 
