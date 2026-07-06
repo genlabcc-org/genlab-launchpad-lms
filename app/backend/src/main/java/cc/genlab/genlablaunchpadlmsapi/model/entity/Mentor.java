@@ -17,7 +17,6 @@ import java.util.UUID;
 public class Mentor {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(nullable = false)

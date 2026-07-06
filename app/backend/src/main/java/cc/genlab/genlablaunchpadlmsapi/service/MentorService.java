@@ -166,7 +166,7 @@ public class MentorService implements MentorServicePort {
                 .name(name)
                 .email(email)
                 .build();
-        mentorRepository.save(mentor);
+        mentorRepository.saveAndFlush(mentor);
 
         return CreateUserResponse.builder()
                 .userId(userId.toString())
