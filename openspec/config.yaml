@@ -6,21 +6,22 @@ context: |
   This is the project for GenLab Launchpad LMS. The reason for building this application is that the current system is extremely inefficient to scale and manage. The custom-tailored LMS streamlines operations, manual revenue tracking, and analytics, resulting in highly efficient processes with minimal manual effort, leading to more efficient and happy employees.
   
   The application is built using a centralized, Zoho Invoice-style dashboard layout with a dark left sidebar navigation and role-based accessibility:
-  - Admins (HRs) manage course students (under 'Students'/'Customers'), catalog courses (under 'Courses'/'Items'), schedule slots (under 'Slots'/'slots'), register mentors (under 'Resource'/'mentor'), track manual payments (under 'Pending Payments'/'Payments'), analyze platform stats (under 'Analytics'/'Home'), and manage student enrollments/slot assignments.
-  - Mentors sign in to view their assigned slots and schedule availability.
-  - Students sign in via phone OTP to view assigned courses, track learning journeys, check scheduled slots, and review payment history.
+  - Primary Operational Sequence (Phase 1): Admin logs in -> Creates Slots -> Defines Batches -> Registers Mentors -> Catalogs Courses -> Onboards Students -> Assigns Schedule.
+  - Core Operational Engine (Phase 1): Scheduling ('/admin/scheduling') and Schedule Inspector ('/admin/schedule-inspector') under OPERATIONS represent the core features of the platform. HRs assign student slot allocations and track all batch timings and mentor slot availability daily. This solves HR's toughest pain point—managing unstructured scheduling.
+  - Payment Tracking (Phase 1): High-level overview flag only; granular payment tracking logic is deferred.
+  - On Hold for Phase 1: Student sign-in/portal, Mentor sign-in/portal, and AWS S3 document upload integration are paused for future phases.
   
   Tech stack: 
     - Frontend: React 19, TypeScript 6.0, Vite 8, Hero UI, Zustand, Axios
     - Backend: Java 25, Spring Boot 4.1.0, Spring Security, Spring WebFlux, Caffeine Cache
-    - Database/Auth: Supabase (PostgreSQL 17, Kong, GoTrue/Auth)
+    - Database/Auth: Supabase (PostgreSQL 17, Kong, GoTrue/Auth), Twilio, Resend
     - Utilities: spring-dotenv (for automatic .env resolution)
-    - Infrastructure & CI/CD: Terraform 1.5.0, Ansible, AWS (EC2, S3, CloudFront, Secrets Manager), Supabase CLI, GitHub Actions
+    - Infrastructure & CI/CD: Render (Backend), Vercel (Frontend), Supabase CLI, GitHub Actions (AWS CloudFront/S3 migration planned for future phase)
   Roles & Access Control:
     - Roles:
-      - student: Phone-only OTP sign-in. Can view their own assigned courses, learning journeys, slot schedules, and personal payment history.
-      - mentor: Email-based sign-in (email ends with `.genlab@gmail.com`). Can view their assigned mentoring slots, schedules, and manage slot status/feedback.
-      - admin (HRs): Email-based sign-in (email ends with `@genlab.cc`). Full administrative access: can provision and create new user accounts, assign courses, schedule/manage mentor slots, manage student enrollments and bulk assignments, view dashboards/analytics, and manually log/track student payments.
+      - student: (On Hold for Phase 1). Phone-only OTP sign-in.
+      - mentor: (On Hold for Phase 1). Email-based sign-in (`.genlab@gmail.com`). Directory resource managed by HR.
+      - admin (HRs): Email-based sign-in (`@genlab.cc`). Primary active role for Phase 1: full administrative access to provision user accounts, assign courses, schedule/manage mentor slots, manage student enrollments, view dashboards/analytics, and manually log/track student payments.
     - Access Level Isolation: Enforce customized sidebar navigation layouts, workspace views, and backend REST API endpoint access per role level.
     - Restrictions: Students and mentors are sign-in only (no self-registration). Only admins (HRs) can provision new logins.
     - Aspect-Oriented Security: Enforced via @RequiresRole aspect checking userRole mapping.
@@ -62,15 +63,21 @@ context: |
     - State Management:
       - Library: Zustand for lightweight, boilerplate-free global state management.
       - Core Stores: Centralize state management for student records, active course settings, scheduled slots/calendar view, and manually tracked pending payments.
-    - Style & Navigation: Standard invoice/billing system layout (inspired by Zoho Invoice) containing a dark left sidebar, top header navigation, and a main workspace/form panel.
-    - Sidebar Navigation Menu Mapping:
-      - Analytics (maps to 'Home' menu item): A dashboard for displaying key business metrics, student enrollments, course trends, slot schedules, and payment overviews.
-      - Students (maps to 'Customers' menu item): Managing student records, tracking attendance, and distributing certificates. Includes onboarding new students via a single admin form where the Admin fills out all student-collected details: name, gender, email, personal + parent/spouse mobile numbers, address, address proof (Aadhar/driving license image upload stored/retrieved via AWS S3), institution details (college/school/institute/company), student type (currently studying student, finished studies fresher, professional), referral details (direct, school, existing student, college, other), payment type (full, partial (monthly or two split)), registered course, assigned mentor, customizable time slot, start/end dates, profile photo upload (stored/retrieved via AWS S3), and terms & conditions agreement. Allows admins to manage attendance and trigger one-click certificate generation and distribution upon course completion.
-      - Courses (maps to 'Items' menu item, labeled as 'Cources'): Defining and managing course catalog, active modules, and student assignments.
-      - Mentors (maps to 'Resource' menu item): Directory and profile management for registered mentors.
-      - Pending Payments (maps to 'Payments' menu item): Auditing, tracking, and manual updating of outstanding student course fees.
-      - Slots (maps to 'slots' menu item): Custom calendar/scheduler view displaying assigned and open slots, mapping students to their respective mentors. Supports customizable slot timings (such as 10am-12pm, 2pm-4pm, 4pm-6pm) and admin-driven creation of new slots.
-        - Schedule Inspector: The admin selects a day to inspect slot utilization. Active slots are grouped by mentor and sorted chronologically as simple cards using Hero UI and Tailwind CSS, completely bypassing third-party calendar libraries (like react-big-calendar).
+    - Style & Navigation: Standard invoice/billing system layout with a dark left sidebar featuring GenLab branding, collapsible navigation via a bottom "Collapse <<" toggle, top header bar, and main workspace panel.
+    - Sidebar Navigation Menu Mapping (Organized into 4 Category Groups):
+      - OVERVIEW:
+        - Home (maps to '/admin/dashboard'): Platform overview dashboard displaying key business metrics, student enrollments, course trends, slot schedules, and payment overviews.
+      - DIRECTORY:
+        - Students (maps to '/admin/students'): Directory for managing student records, tracking attendance, distributing certificates, and onboarding new students via the comprehensive admin student form.
+        - Courses (maps to '/admin/courses'): Catalog definition, managing active modules, and student course assignments.
+        - Mentors (maps to '/admin/mentors'): Directory and profile management for registered mentors (*.genlab@gmail.com).
+      - OPERATIONS:
+        - Batches (maps to '/admin/batches'): Creation and management of course batches, mapping students and mentors.
+        - Slots (maps to '/admin/slots'): Custom slot timing presets (e.g., 10am-12pm, 2pm-4pm, 4pm-6pm) and scheduler settings.
+        - Scheduling (maps to '/admin/scheduling'): Coordinating schedule assignments between students, batches, mentors, and slots.
+        - Schedule Inspector (maps to '/admin/schedule-inspector' under OPERATIONS): The daily operational hub providing a visual daily overview of active sessions for management and mentors (external communications occur out-of-band; no automated platform messaging is sent). Displays active mentoring slots grouped by mentor and sorted chronologically as cards. Features a native date picker selector (DD-MM-YYYY), a manual sync/refresh control, a backend connection failure alert banner ("Failed to connect to the backend server to retrieve schedule details."), and an empty state card ("No Active Slots Found" - "There are no active student enrollments scheduled for the date YYYY-MM-DD.") when no slots exist.
+      - FINANCIALS:
+        - Payments (maps to '/admin/payments'): Auditing, tracking, and manual status updating of student course fee records.
   Architectural Guidelines & Design Principles:
     - Core Principles: Strict adherence to SOLID (high priority), KISS, and DRY principles across all development boundaries (backend codebase, frontend application, and database designs). Always follow these principles while writing any code.
     - Backend Architecture:

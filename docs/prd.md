@@ -28,11 +28,12 @@
 - Admins can assign appropriate mentors to available student slots.
 - Mentors and students can view their respective calendar slots.
 - **Customizable Slot Durations**: Admins can customize slot timings (defaults: 10am-12pm, 2pm-4pm, 4pm-6pm) and dynamically add new slots to the scheduler.
-- **Schedule Inspector**: A daily schedule inspector view displaying active mentoring slots grouped by mentor and sorted chronologically as simple cards.
-  - Built with native HTML5 date input and styled with Hero UI and Tailwind CSS, completely bypassing third-party calendar libraries (like react-big-calendar).
+- **Schedule Inspector**: A dedicated daily operational hub item under **OPERATIONS** displaying active mentoring slots grouped by mentor and sorted chronologically as interactive cards.
+  - **Date Picker & Sync Controls**: Features a native date picker (`DD-MM-YYYY`, e.g. `06-07-2026`) and manual sync/refresh icon button in the page header to inspect specific date allocations.
+  - **Backend Connection Alert**: Displays a high-visibility pink alert banner (`Failed to connect to the backend server to retrieve schedule details.`) if the Spring Boot REST backend server is disconnected or unreachable.
+  - **Empty State Card**: Renders a centered empty state component (`No Active Slots Found` - `There are no active student enrollments scheduled for the date YYYY-MM-DD.`) when no slot allocations exist for the selected date.
   - **Active Day Filtering**: Client-side filtering selects enrollments and schedules where `startDate <= selectedDate && endDate >= selectedDate`.
   - **Data Flow**: Axios API Layer → Zustand/State → filtering, grouping, and chronological sorting → simple card rendering.
-
 
 ### 1.5. Payment Tracking
 - Audit panel for manually logging student course fees.
@@ -45,16 +46,19 @@
 ---
 
 ## 2. Interface Layout & Sidebar Menu Mappings
-The dashboard UI follows a Zoho Invoice-styled structure: a dark left sidebar, top header bar, and a central workspace panel. The sidebar menus map to the system entities as follows:
+The dashboard UI features a dark left sidebar with **GenLab (The Next Creation Space)** header branding, a bottom `Collapse <<` toggle button, a top header bar, and a central workspace panel. Sidebar menu items are organized under four main category groups:
 
-| Default Sidebar Menu | Mapped Name | Role Functionality |
-| :--- | :--- | :--- |
-| **Home** | **Analytics** | Dashboard displaying key business metrics, student stats, active courses, and payments. |
-| **Customers** | **Students** | Directory of course students. Includes student creation form (Primary contact, email, phone, language, etc.). |
-| **Items** | **Courses** *(labeled 'Cources')* | Course catalog definition, active curriculum modules, and student assignments. |
-| *Resource (blurred)* | **Mentors** | Directory of registered mentors and slot details. |
-| **Payments** | **Pending Payments** | Tracking outstanding manually logged student course fees and status updates. |
-| *slots* | **Slots** | Custom scheduler presets and daily schedule inspector view mapping students to active slots. Displays slots in simple cards. |
+| Category Group | Sidebar Item | Mapped Route | Role Functionality |
+| :--- | :--- | :--- | :--- |
+| **OVERVIEW** | **Home** | `/admin/dashboard` | Top-level analytics dashboard displaying key business metrics, student stats, active courses, and payments overview. |
+| **DIRECTORY** | **Students** | `/admin/students` | Directory of enrolled students, academic profiles, contact records, and single admin onboarding creation form. |
+| **DIRECTORY** | **Courses** | `/admin/courses` | Course catalog definitions, active curriculum modules, and fee structure configuration. |
+| **DIRECTORY** | **Mentors** | `/admin/mentors` | Directory and profile management for registered mentors (`*.genlab@gmail.com`). |
+| **OPERATIONS** | **Batches** | `/admin/batches` | Creation and management of course batches, assigning mentors and slot timings. |
+| **OPERATIONS** | **Slots** | `/admin/slots` | Custom slot timing presets (10am-12pm, 2pm-4pm, 4pm-6pm) and scheduler settings. |
+| **OPERATIONS** | **Scheduling** | `/admin/scheduling` | **Core Operational Engine.** Assigning and coordinating schedule allocations between students, batches, mentors, and slot timings. |
+| **OPERATIONS** | **Schedule Inspector** | `/admin/schedule-inspector` | **Core Daily Hub.** Displays active slots grouped by mentor, date picker controls, refresh action, backend connection error banner, and empty state handling. |
+| **FINANCIALS** | **Payments** | `/admin/payments` | Auditing, tracking, and manual status updating of student course fee records. |
 
 ---
 

@@ -20,7 +20,18 @@ src/
 - **Framework**: `react-router-dom` with `<BrowserRouter>` in `main.tsx`.
 - **Public-Only Route (`/login`)**: Wrapped in `PublicOnlyRoute`. If authenticated, automatically redirects to `/${userRole}/dashboard`.
 - **Protected Role Routes**: `/admin/dashboard`, `/mentor/dashboard`, and `/student/dashboard` protected by `ProtectedRoute`. Unauthenticated users are redirected to `/login`; cross-role attempts redirect users to their assigned role dashboard.
-- **Role Dashboard Views**: Distinct presentational components (`AdminDashboard.tsx`, `MentorDashboard.tsx`, `StudentDashboard.tsx`) rendered inside `DashboardContainer.tsx`.
+- **Admin Dashboard Category Routes** (nested under `/admin`):
+  - `OVERVIEW`: `/admin/dashboard` (`AdminDashboard.tsx`)
+  - `DIRECTORY`: `/admin/students` (`AdminStudentsDashboard.tsx`), `/admin/courses` (`AdminCoursesDashboard.tsx`), `/admin/mentors` (`AdminMentorsDashboard.tsx`)
+  - `OPERATIONS`: `/admin/batches` (`AdminBatchesDashboard.tsx`), `/admin/slots` (`AdminSlotsDashboard.tsx`), `/admin/scheduling` (`AdminSchedulingDashboard.tsx`), `/admin/schedule-inspector` (`AdminScheduleInspectorDashboard.tsx`)
+  - `FINANCIALS`: `/admin/payments` (`AdminPaymentsDashboard.tsx`)
+- **Mentor Protected Routes** (nested under `/mentor`):
+  - `/mentor/dashboard` (`MentorDashboard.tsx`), `/mentor/scheduling` (`MentorSlotsDashboard.tsx`)
+- **Student Protected Routes** (nested under `/student`):
+  - `/student/dashboard` (`StudentDashboard.tsx`), `/student/enrollments` (`StudentEnrollmentsDashboard.tsx`)
+- **Settings Routes** (nested under `/settings`):
+  - `/settings/appearance`, `/settings/account`, `/settings/platform`, `/settings/accessibility`, `/settings/security`
+- **Role Dashboard Views**: Presentational dashboard components rendered inside `DashboardContainer.tsx` with collapsible dark sidebar (`Collapse <<`).
 - **404 Catch-All (`*`)**: Hero UI styled `NotFound.tsx` page with smart navigation back to active role dashboard or login.
 
 ---

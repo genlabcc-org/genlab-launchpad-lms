@@ -32,8 +32,9 @@ graph TD
 
 ### 3.1. Frontend Application
 - **Framework**: React 19 + Vite 8 + TypeScript 6.0.
-- **Component Library**: Hero UI (formerly NextUI) configured with custom Tailwind CSS plugins.
-- **Schedule Inspector**: A customized page for daily scheduling checks displaying slots as simple cards, grouped by mentor and sorted chronologically. Custom Tailwind CSS and Hero UI elements are used instead of `react-big-calendar`.
+- **Layout & Navigation**: Structured dark sidebar featuring GenLab branding, bottom `Collapse <<` toggle button, and four main category groups (`OVERVIEW`, `DIRECTORY`, `OPERATIONS`, `FINANCIALS`).
+- **Schedule Inspector**: A dedicated daily operational hub (`/admin/schedule-inspector`) under `OPERATIONS` displaying slots as simple cards, grouped by mentor and sorted chronologically. Custom Tailwind CSS and Hero UI elements are used instead of `react-big-calendar`.
+- **Inspector Controls & States**: Page header incorporates a native date picker (`DD-MM-YYYY`), manual refresh action button, backend disconnection alert banner (`Failed to connect to the backend server to retrieve schedule details.`), and a centered empty state card (`No Active Slots Found` - `There are no active student enrollments scheduled for the date YYYY-MM-DD.`).
 - **Date Filter Adapter**: A dedicated mapping utility handles filtering active schedules client-side, matching them to the selected date by comparing `startDate` and `endDate`.
 - **Global State**: Zustand stores representing domain states (students, courses, slots, payments).
 - **HTTP Client**: Axios configured with custom middleware for token extraction and proxy routing.
