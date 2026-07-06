@@ -34,6 +34,7 @@ import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class CourseService implements CourseServicePort {
 
     private final CourseRepository courseRepository;

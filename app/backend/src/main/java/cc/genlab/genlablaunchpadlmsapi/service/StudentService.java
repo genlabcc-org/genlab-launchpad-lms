@@ -26,6 +26,7 @@ import java.util.*;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class StudentService implements StudentServicePort {
 
     private final StudentRepository studentRepository;

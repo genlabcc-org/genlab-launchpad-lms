@@ -17,6 +17,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class SlotService implements SlotServicePort {
 
     private final SlotRepository slotRepository;
