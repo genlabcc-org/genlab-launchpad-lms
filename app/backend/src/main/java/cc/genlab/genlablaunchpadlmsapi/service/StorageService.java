@@ -41,6 +41,21 @@ public class StorageService {
     @PostConstruct
     public void init() {
         String bucketName = getBucketName();
+        if (bucketName == null || bucketName.trim().isEmpty()) {
+            log.info("S3 bucket name is empty or not configured. Skipping S3 initialization.");
+            return;
+        }
+
+        String endpointOverride = awsProperties.getS3().getEndpoint();
+        boolean isLocal = endpointOverride != null && !endpointOverride.trim().isEmpty() && endpointOverride.contains("localhost");
+        String accessKey = System.getenv("AWS_ACCESS_KEY_ID");
+        String secretKey = System.getenv("AWS_SECRET_ACCESS_KEY");
+
+        if (!isLocal && (accessKey == null || accessKey.trim().isEmpty() || secretKey == null || secretKey.trim().isEmpty())) {
+            log.warn("S3 bucket is configured but AWS credentials (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY) are missing in production. Skipping S3 initialization.");
+            return;
+        }
+
         try {
             s3Client.headBucket(HeadBucketRequest.builder()
                     .bucket(bucketName)
