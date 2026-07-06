@@ -270,6 +270,7 @@ function App() {
                     onClick={() => {
                       setSession(item.id, {
                         user: { id: `sandbox-${item.id}-id`, email: `${item.id}@genlab.cc` },
+                        access_token: `sandbox-mock-token-${item.id}`,
                       });
                       navigate(`/${item.id}/dashboard`, { replace: true });
                     }}

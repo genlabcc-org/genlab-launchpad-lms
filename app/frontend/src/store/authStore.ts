@@ -27,8 +27,9 @@ const getInitialState = () => {
   const savedUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
   const savedEmail = typeof window !== 'undefined' ? localStorage.getItem('userEmail') : null;
   const savedPhone = typeof window !== 'undefined' ? localStorage.getItem('userPhone') : null;
+  const savedToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
-  if (savedRole && savedUserId) {
+  if (savedRole && savedUserId && savedToken) {
     return {
       isAuthenticated: true,
       userRole: savedRole,
