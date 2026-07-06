@@ -74,7 +74,7 @@ export function FtuxChecklist() {
   }
 
   return (
-    <div className="p-6 bg-linear-to-br from-slate-900 via-card-bg to-slate-950 border border-primary/25 rounded-3xl shadow-lg relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+    <div className="shrink-0 p-6 bg-linear-to-br from-white via-slate-50 to-slate-100/50 dark:from-slate-900 dark:via-card-bg dark:to-slate-950 border border-border-subtle dark:border-primary/25 rounded-3xl shadow-lg relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
       {/* Background ambient glow */}
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -88,7 +88,7 @@ export function FtuxChecklist() {
               First-Time Workspace Setup Checklist
             </h3>
           </div>
-          <p className="text-xs text-slate-400 font-semibold mt-1 max-w-xl">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-1 max-w-xl">
             Welcome to GenLab LMS! Complete these 5 quick onboarding steps to fully activate your system flow.
           </p>
         </div>
@@ -97,7 +97,7 @@ export function FtuxChecklist() {
           <span className="text-xs font-bold text-primary">
             {completedCount} / 5 Steps Done
           </span>
-          <div className="w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden mt-1.5 border border-border-subtle/30">
+          <div className="w-32 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mt-1.5 border border-border-subtle/30">
             <div
               className="h-full bg-primary transition-all duration-500 ease-out"
               style={{ width: `${(completedCount / 5) * 100}%` }}
@@ -115,21 +115,21 @@ export function FtuxChecklist() {
               className={`flex flex-col justify-between p-4 text-left border rounded-2xl transition-all duration-300 cursor-pointer ${
                 step.isCompleted
                   ? 'border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10'
-                  : 'border-border-subtle/80 bg-slate-800/5 hover:border-primary/40 hover:bg-slate-800/15'
+                  : 'border-border-subtle/80 bg-slate-100/30 dark:bg-slate-800/5 hover:border-primary/60 dark:hover:border-primary/40 hover:bg-slate-200/50 dark:hover:bg-slate-800/15'
               }`}
             >
               <div>
                 <div className="flex items-start justify-between mb-3.5">
-                  <span className="text-[10px] font-bold text-slate-500">STEP {idx + 1}</span>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">STEP {idx + 1}</span>
                   {step.isCompleted ? (
                     <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500 shrink-0" />
                   ) : (
-                    <Circle className="w-4.5 h-4.5 text-slate-600 shrink-0" />
+                    <Circle className="w-4.5 h-4.5 text-slate-400 dark:text-slate-600 shrink-0" />
                   )}
                 </div>
 
                 <h4 className="text-xs font-bold text-foreground leading-snug">{step.label}</h4>
-                <p className="text-[10px] text-slate-500 font-semibold mt-1 leading-normal line-clamp-2">
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-1 leading-normal line-clamp-2">
                   {step.description}
                 </p>
               </div>
