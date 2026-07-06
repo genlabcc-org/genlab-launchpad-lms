@@ -55,6 +55,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setSession: (role, session) => {
     const user = session?.user || {};
+    const token = session?.access_token;
     set({
       isAuthenticated: true,
       userRole: role,
@@ -67,6 +68,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem('userId', user.id || '');
     localStorage.setItem('userEmail', user.email || '');
     localStorage.setItem('userPhone', user.phone || '');
+    if (token) {
+      localStorage.setItem('accessToken', token);
+    }
     // Record login timestamp for Security section session age display
     if (!localStorage.getItem('loginAt')) {
       localStorage.setItem('loginAt', new Date().toISOString());
@@ -87,6 +91,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userPhone');
     localStorage.removeItem('loginAt');
+    localStorage.removeItem('accessToken');
     document.cookie = 'authToken=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax;';
   },
 

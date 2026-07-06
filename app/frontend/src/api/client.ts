@@ -15,13 +15,23 @@ export const apiClient = axios.create({
   },
 });
 
+// Request interceptor for attaching Authorization Bearer token if available
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Response interceptor for handling 401 Unauthorized errors (session expiration)
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Handle session expiration: clear local role tracking
+      // Handle session expiration: clear local role & token tracking
       localStorage.removeItem('userRole');
+      localStorage.removeItem('accessToken');
     }
     return Promise.reject(error);
   }

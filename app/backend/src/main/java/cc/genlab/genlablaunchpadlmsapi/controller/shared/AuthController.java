@@ -157,10 +157,11 @@ public class AuthController {
 
     @PostMapping("/logout")
     public MessageResponse logout(HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
+        boolean isSecure = httpRequest.isSecure() || "https".equalsIgnoreCase(httpRequest.getHeader("X-Forwarded-Proto"));
         ResponseCookie cookie = ResponseCookie.from("authToken", "")
                 .httpOnly(true)
-                .secure(httpRequest.isSecure())
-                .sameSite("Lax")
+                .secure(isSecure)
+                .sameSite(isSecure ? "None" : "Lax")
                 .path("/")
                 .maxAge(0)
                 .build();
@@ -169,10 +170,11 @@ public class AuthController {
     }
 
     private void setAuthCookie(HttpServletRequest request, HttpServletResponse response, String token) {
+        boolean isSecure = request.isSecure() || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
         ResponseCookie cookie = ResponseCookie.from("authToken", token)
                 .httpOnly(true)
-                .secure(request.isSecure())
-                .sameSite("Lax")
+                .secure(isSecure)
+                .sameSite(isSecure ? "None" : "Lax")
                 .path("/")
                 .maxAge(30 * 24 * 60 * 60) // 30 days
                 .build();
