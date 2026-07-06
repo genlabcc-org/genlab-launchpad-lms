@@ -12,6 +12,7 @@
  */
 import type { ReactNode } from 'react';
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { EmptyState } from './shared';
 
 // ─── Column definition ────────────────────────────────────────────────────────
 
@@ -99,11 +100,7 @@ export function DirectoryTable<T>({
   }
 
   if (data.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-xs text-muted font-medium">{emptyMessage}</p>
-      </div>
-    );
+    return <EmptyState message={emptyMessage} />;
   }
 
   return (

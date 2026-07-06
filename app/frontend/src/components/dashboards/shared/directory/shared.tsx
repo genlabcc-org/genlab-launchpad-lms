@@ -7,8 +7,41 @@
  * KISS: keep each primitive under 30 lines. No logic, no state.
  * DRY: any pattern appearing in 2+ places lives here instead.
  */
-import { AlertCircle, CheckCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import { AlertCircle, CheckCircle, ChevronUp, ChevronDown, Inbox } from 'lucide-react';
 import type { ReactNode } from 'react';
+
+// ─── EmptyState ───────────────────────────────────────────────────────────────
+
+interface EmptyStateProps {
+  title?: string;
+  message?: string;
+}
+
+export function EmptyState({
+  title = 'No records found',
+  message = 'There are no items to show in this directory right now.',
+}: EmptyStateProps) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-12 text-center min-h-[350px]">
+      <div className="group relative mb-6">
+        {/* Glow effect behind the icon container */}
+        <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
+        
+        {/* Glassmorphic Icon Container */}
+        <div className="relative w-16 h-16 rounded-2xl bg-card-bg border border-border-subtle flex items-center justify-center shadow-xs group-hover:scale-105 group-hover:border-primary/50 transition-all duration-300">
+          <Inbox className="w-8 h-8 text-primary transition-transform duration-300 group-hover:translate-y-[-2px]" strokeWidth={1.5} />
+        </div>
+      </div>
+      
+      <h3 className="text-sm font-bold text-foreground mb-2 tracking-wide uppercase">
+        {title}
+      </h3>
+      <p className="text-xs text-muted max-w-xs leading-relaxed">
+        {message}
+      </p>
+    </div>
+  );
+}
 
 // ─── StatusBanner ─────────────────────────────────────────────────────────────
 

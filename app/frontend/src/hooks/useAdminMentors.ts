@@ -10,8 +10,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../api/admin';
-import { fallbackMentors, fallbackCourses } from '../data/courseFallbacks';
-import { fallbackStudents } from '../data/studentFallbacks';
 import type { MentorDto, MentorScheduleDto, CourseDto } from '../api/types';
 import type { StatusMessage } from '../components/dashboards/shared/directory/shared';
 
@@ -100,9 +98,9 @@ export function useAdminMentors(): UseAdminMentorsReturn {
   const loadCourses = async () => {
     try {
       const fetched = await adminApi.getAllCourses();
-      setCourses(fetched.length ? fetched : fallbackCourses);
+      setCourses(fetched || []);
     } catch {
-      setCourses(fallbackCourses);
+      setCourses([]);
     }
   };
 
@@ -110,9 +108,9 @@ export function useAdminMentors(): UseAdminMentorsReturn {
     setIsLoading(true);
     try {
       const fetched = await adminApi.getAllMentors();
-      setMentors(fetched.length ? fetched : fallbackMentors);
+      setMentors(fetched || []);
     } catch {
-      setMentors(fallbackMentors);
+      setMentors([]);
     } finally {
       setIsLoading(false);
     }
@@ -162,81 +160,14 @@ export function useAdminMentors(): UseAdminMentorsReturn {
     setMessage(null);
   };
 
-  const getFallbackSchedules = (mentorId: string): MentorScheduleDto[] => {
-    // Filter students assigned to this mentor in mock fallback list
-    const assignedStudents = fallbackStudents.filter((s) => s.assignedMentorId === mentorId);
-    if (assignedStudents.length === 0) return [];
-
-    // Group by course + slot + dates
-    const groups: {
-      [key: string]: {
-        courseId: string;
-        slotId: string;
-        startDate: string;
-        endDate: string;
-        students: typeof fallbackStudents;
-      };
-    } = {};
-
-    assignedStudents.forEach((student) => {
-      if (!student.registeredCourseId || !student.timeSlotId) return;
-      const key = `${student.registeredCourseId}_${student.timeSlotId}_${student.startDate}_${student.endDate}`;
-      if (!groups[key]) {
-        groups[key] = {
-          courseId: student.registeredCourseId,
-          slotId: student.timeSlotId,
-          startDate: student.startDate ?? '',
-          endDate: student.endDate ?? '',
-          students: [],
-        };
-      }
-      groups[key].students.push(student);
-    });
-
-    return Object.values(groups).map((g, index) => {
-      const course = fallbackCourses.find((c) => c.id === g.courseId) || {
-        id: g.courseId,
-        title: 'GenLab Creator Launchpad (Beta)',
-        price: 699.00,
-        isActive: true,
-      };
-      const slot = {
-        id: g.slotId,
-        name: g.slotId === 'd1b821a8-7fcd-4e8c-8f1b-5e69b0fa6cd1' ? '10:00 AM – 12:00 PM' : '2:00 PM – 4:00 PM',
-        startTime: g.slotId === 'd1b821a8-7fcd-4e8c-8f1b-5e69b0fa6cd1' ? { hour: 10, minute: 0 } : { hour: 14, minute: 0 },
-        endTime: g.slotId === 'd1b821a8-7fcd-4e8c-8f1b-5e69b0fa6cd1' ? { hour: 12, minute: 0 } : { hour: 16, minute: 0 },
-      };
-      const mentor = fallbackMentors.find((m) => m.id === mentorId) || {
-        id: mentorId,
-        name: 'Anika Sen',
-        email: 'anika.sen@genlab.cc',
-      };
-
-      return {
-        id: `mock-schedule-${mentorId}-${index}`,
-        mentor,
-        course,
-        slot,
-        startDate: g.startDate,
-        endDate: g.endDate,
-        batchId: '2026_july_batch_1',
-        students: g.students,
-      };
-    });
-  };
-
   const loadMentorSchedules = async (mentorId: string) => {
     setIsLoadingSchedules(true);
     try {
       const schedules = await adminApi.getMentorSlots(mentorId);
-      if (schedules.length === 0) {
-        setSelectedMentorSchedules(getFallbackSchedules(mentorId));
-      } else {
-        setSelectedMentorSchedules(schedules);
-      }
+      setSelectedMentorSchedules(schedules || []);
     } catch (err) {
       console.error('Failed to load mentor schedules', err);
-      setSelectedMentorSchedules(getFallbackSchedules(mentorId));
+      setSelectedMentorSchedules([]);
     } finally {
       setIsLoadingSchedules(false);
     }

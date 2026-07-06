@@ -13,7 +13,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../api/admin';
-import { fallbackCourses, fallbackMentors } from '../data/courseFallbacks';
 import type { CourseDto, CourseRequest, MentorDto } from '../api/types';
 
 // ─── Public types ────────────────────────────────────────────────────────────
@@ -172,9 +171,9 @@ export function useAdminCourses(): UseAdminCoursesReturn {
     setIsLoadingList(true);
     try {
       const fetched = await adminApi.getAllCourses();
-      setCourses(fetched.length > 0 ? fetched : fallbackCourses);
+      setCourses(fetched || []);
     } catch {
-      setCourses(fallbackCourses);
+      setCourses([]);
     } finally {
       setIsLoadingList(false);
     }
@@ -183,9 +182,9 @@ export function useAdminCourses(): UseAdminCoursesReturn {
   const loadMentors = async () => {
     try {
       const fetched = await adminApi.getAllMentors();
-      setMentors(fetched.length > 0 ? fetched : fallbackMentors);
+      setMentors(fetched || []);
     } catch {
-      setMentors(fallbackMentors);
+      setMentors([]);
     }
   };
 
@@ -196,8 +195,7 @@ export function useAdminCourses(): UseAdminCoursesReturn {
       const details = await adminApi.getCourseById(id);
       setSelectedCourse(details);
     } catch {
-      const local =
-        courses.find((c) => c.id === id) ?? fallbackCourses.find((c) => c.id === id) ?? null;
+      const local = courses.find((c) => c.id === id) ?? null;
       setSelectedCourse(local);
     } finally {
       setIsLoadingDetails(false);
