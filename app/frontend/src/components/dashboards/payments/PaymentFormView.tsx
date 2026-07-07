@@ -1,12 +1,12 @@
 import React from 'react';
 import { ArrowLeft, Sparkles, DollarSign, Calendar, CreditCard, User, FileText, Clock } from 'lucide-react';
 import type { PaymentFormState } from '../../../hooks/useAdminPayments';
-import type { StudentDto } from '../../../api/types';
+import type { EnrollmentDto } from '../../../api/types';
 import type { StatusMessage } from '../shared/directory/shared';
 
 interface PaymentFormViewProps {
   form: PaymentFormState;
-  students: StudentDto[];
+  enrollments: EnrollmentDto[];
   isSaving: boolean;
   message: StatusMessage;
   setFormField: <K extends keyof PaymentFormState>(key: K, value: PaymentFormState[K]) => void;
@@ -16,7 +16,7 @@ interface PaymentFormViewProps {
 
 export const PaymentFormView: React.FC<PaymentFormViewProps> = ({
   form,
-  students,
+  enrollments,
   isSaving,
   message,
   setFormField,
@@ -74,10 +74,10 @@ export const PaymentFormView: React.FC<PaymentFormViewProps> = ({
                 onChange={(e) => setFormField('enrollmentId', e.target.value)}
                 className="w-full py-2.5 px-3 bg-background border border-border-subtle rounded-xl text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
               >
-                <option value="">-- Direct / Unassigned Student Payment --</option>
-                {students.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.email})
+                <option value="">-- Select Student / Enrollment --</option>
+                {enrollments.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.student?.name} ({e.student?.email})
                   </option>
                 ))}
               </select>

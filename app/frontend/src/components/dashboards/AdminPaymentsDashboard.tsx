@@ -21,7 +21,7 @@ export function AdminPaymentsDashboard() {
     return (
       <PaymentFormView
         form={p.form}
-        students={p.students}
+        enrollments={p.enrollments}
         isSaving={p.isSaving}
         message={p.message}
         setFormField={p.setFormField}

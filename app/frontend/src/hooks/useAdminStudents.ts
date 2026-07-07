@@ -302,6 +302,10 @@ export function useAdminStudents(): UseAdminStudentsReturn {
     setIsSaving(true);
     setMessage(null);
 
+    const hasEnrollment = enrollments.some((e) => e.student?.id === selectedStudentId);
+    const isEnrolling = Boolean(form.registeredCourseId);
+    const includeEnrollmentFields = hasEnrollment || isEnrolling;
+
     // Map form fields to UpdateStudentRequest
     const payload = {
       name: form.name,
@@ -313,12 +317,12 @@ export function useAdminStudents(): UseAdminStudentsReturn {
       institutionName: form.institutionName || undefined,
       studentType: form.studentType || undefined,
       referralSource: form.referralSource || undefined,
-      paymentType: form.paymentType || undefined,
+      paymentType: includeEnrollmentFields ? (form.paymentType || undefined) : undefined,
       interestedCourseId: form.interestedCourseId || undefined,
       registeredCourseId: form.registeredCourseId || undefined,
       assignedMentorId: form.assignedMentorId || undefined,
       timeSlotId: form.timeSlotId || undefined,
-      totalAmount: form.totalAmount,
+      totalAmount: includeEnrollmentFields ? form.totalAmount : undefined,
     };
 
     try {
